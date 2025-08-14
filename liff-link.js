@@ -9,13 +9,26 @@ document.addEventListener('DOMContentLoaded', async function() {
   const resultDiv = document.getElementById('result');
   const addFriendBtn = document.getElementById('addFriendBtn');
 
-  // ดึง cid จาก query string หรือจาก state parameter
+  // ดึง cid จาก query string, hash fragment หรือจาก state parameter
   const urlParams = new URLSearchParams(window.location.search);
   console.log('window.location.href:', window.location.href);
   console.log('window.location.search:', window.location.search);
+  console.log('window.location.hash:', window.location.hash);
   console.log('urlParams:', urlParams.toString());
   let cid = urlParams.get('cid');
   console.log('cid from query:', cid);
+  
+  // ตรวจสอบ hash fragment ถ้าไม่เจอใน query parameters
+  if (!cid && window.location.hash) {
+    console.log('Checking hash fragment...');
+    try {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      cid = hashParams.get('cid');
+      console.log('cid from hash:', cid);
+    } catch (e) {
+      console.log('Error parsing hash fragment:', e);
+    }
+  }
   if (!cid) {
     // กรณีถูก redirect หลัง LINE Login จะมี state parameter
     const state = urlParams.get('state');
