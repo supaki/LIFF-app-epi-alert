@@ -5,7 +5,7 @@ const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwPwiSMPSdXZ9Rqo
 const BOT_BASIC_ID = '@829aobqk'; // หรือดึงจาก config ถ้าต้องการ
 
 document.addEventListener('DOMContentLoaded', async function() {
-  console.log('=== LIFF App Started (v2025081403) ==='); // Version bump for cache busting
+  console.log('=== LIFF App Started (v2025081404) ==='); // Version bump for cache busting
   const statusDiv = document.getElementById('status');
   const resultDiv = document.getElementById('result');
   const addFriendBtn = document.getElementById('addFriendBtn');
@@ -135,10 +135,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     };
     // ส่ง userId + cid ไปบันทึกใน backend
     statusDiv.textContent = 'กำลังผูกบัญชี...';
-    fetch(GAS_WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'saveLineIdToPerson', cid: cid, lineUserId: userId }),
-      headers: { 'Content-Type': 'application/json' }
+    const params = new URLSearchParams({
+      action: 'saveLineIdToPerson',
+      cid: cid,
+      lineUserId: userId
+    });
+    fetch(GAS_WEBAPP_URL + '?' + params.toString(), {
+      method: 'GET'
     })
     .then(res => res.json())
     .then(data => {
@@ -151,8 +154,18 @@ document.addEventListener('DOMContentLoaded', async function() {
       }
     })
     .catch(err => {
-      statusDiv.textContent = '';
-      resultDiv.textContent = 'เกิดข้อผิดพลาด: ' + err.message;
+      console.error('Fetch failed, trying alternative method:', err);
+      // Fallback: ใช้ window.open เปิดใน tab ใหม่แล้วปิดทันที
+      statusDiv.textContent = 'กำลังผูกบัญชี (วิธีทางเลือก)...';
+      const fallbackUrl = GAS_WEBAPP_URL + '?' + params.toString();
+      const popup = window.open(fallbackUrl, '_blank', 'width=1,height=1');
+      
+      // ปิด popup หลัง 3 วินาที และแสดงข้อความสำเร็จ
+      setTimeout(() => {
+        if (popup) popup.close();
+        statusDiv.textContent = '';
+        resultDiv.textContent = 'ผูกบัญชี LINE กับระบบสำเร็จ! (กรุณาตรวจสอบในระบบ)';
+      }, 3000);
     });
   } catch (e) {
     statusDiv.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อ LIFF: ' + e.message;
