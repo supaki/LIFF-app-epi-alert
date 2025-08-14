@@ -5,7 +5,7 @@ const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwPwiSMPSdXZ9Rqo
 const BOT_BASIC_ID = '@829aobqk'; // หรือดึงจาก config ถ้าต้องการ
 
 document.addEventListener('DOMContentLoaded', async function() {
-  console.log('=== LIFF App Started (v2025081406) ==='); // Version bump for cache busting
+  console.log('=== LIFF App Started (v2025081407) ==='); // Version bump for cache busting
   
   // New UI elements
   const statusIcon = document.getElementById('statusIcon');
@@ -15,15 +15,31 @@ document.addEventListener('DOMContentLoaded', async function() {
   const addFriendBtn = document.getElementById('addFriendBtn');
   const resultDiv = document.getElementById('result');
   
+  // Debug UI elements
+  console.log('UI Elements Check:', {
+    statusIcon: !!statusIcon,
+    statusText: !!statusText,
+    statusDetail: !!statusDetail,
+    actionButtons: !!actionButtons,
+    addFriendBtn: !!addFriendBtn,
+    resultDiv: !!resultDiv
+  });
+  
   // Status management functions
   function updateStatus(step, icon, text, detail = '', isLoading = false) {
     // Update step indicators
     updateStepIndicator(step);
     
     // Update status display
-    statusIcon.innerHTML = `<i class="${icon} ${isLoading ? 'pulse' : ''}"></i>`;
-    statusText.textContent = text;
-    statusDetail.textContent = detail;
+    if (statusIcon) {
+      statusIcon.innerHTML = `<i class="${icon} ${isLoading ? 'pulse' : ''}"></i>`;
+    }
+    if (statusText) {
+      statusText.textContent = text;
+    }
+    if (statusDetail) {
+      statusDetail.textContent = detail;
+    }
     
     console.log(`Status: ${text} ${detail ? '- ' + detail : ''}`);
   }
@@ -33,7 +49,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     const lines = ['line1', 'line2'];
     
     steps.forEach((stepId, index) => {
-      const stepElement = document.getElementById(stepId).querySelector('div');
+      const stepContainer = document.getElementById(stepId);
+      if (!stepContainer) return; // Skip if element doesn't exist
+      
+      const stepElement = stepContainer.querySelector('div');
+      if (!stepElement) return; // Skip if div doesn't exist
+      
       const stepNum = index + 1;
       
       if (stepNum <= currentStep) {
@@ -46,6 +67,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Update connecting lines
     lines.forEach((lineId, index) => {
       const lineElement = document.getElementById(lineId);
+      if (!lineElement) return; // Skip if element doesn't exist
+      
       if (index + 1 < currentStep) {
         lineElement.className = lineElement.className.replace('bg-gray-200', 'bg-green-400');
       }
@@ -54,14 +77,24 @@ document.addEventListener('DOMContentLoaded', async function() {
   
   function showSuccess(message, showButtons = false) {
     updateStatus(3, 'fas fa-check-circle text-green-500', 'สำเร็จ!', message);
-    if (showButtons) {
+    if (showButtons && actionButtons) {
       actionButtons.classList.remove('hidden');
       actionButtons.classList.add('slide-up');
+    }
+    
+    // Fallback for old UI
+    if (!statusIcon && resultDiv) {
+      resultDiv.innerHTML = `<div class="text-green-600">✅ ${message}</div>`;
     }
   }
   
   function showError(message) {
     updateStatus(0, 'fas fa-exclamation-triangle text-red-500', 'เกิดข้อผิดพลาด', message);
+    
+    // Fallback for old UI
+    if (!statusIcon && resultDiv) {
+      resultDiv.innerHTML = `<div class="text-red-600">❌ เกิดข้อผิดพลาด: ${message}</div>`;
+    }
   }
   
   // Initialize
