@@ -5,6 +5,7 @@ const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwPwiSMPSdXZ9Rqo
 const BOT_BASIC_ID = '@829aobqk'; // หรือดึงจาก config ถ้าต้องการ
 
 document.addEventListener('DOMContentLoaded', async function() {
+  console.log('=== LIFF App Started (v2025081403) ==='); // Version bump for cache busting
   const statusDiv = document.getElementById('status');
   const resultDiv = document.getElementById('result');
   const addFriendBtn = document.getElementById('addFriendBtn');
@@ -22,12 +23,20 @@ document.addEventListener('DOMContentLoaded', async function() {
   if (!cid && window.location.hash) {
     console.log('Checking hash fragment...');
     try {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const hashString = window.location.hash.substring(1); // remove #
+      console.log('hash string (after removing #):', hashString);
+      const hashParams = new URLSearchParams(hashString);
       cid = hashParams.get('cid');
       console.log('cid from hash:', cid);
     } catch (e) {
       console.log('Error parsing hash fragment:', e);
     }
+  }
+  
+  // Store CID in localStorage before LINE login if found
+  if (cid) {
+    console.log('Storing CID in localStorage:', cid);
+    localStorage.setItem('pendingCid', cid);
   }
   if (!cid) {
     // กรณีถูก redirect หลัง LINE Login จะมี state parameter
