@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ผูกบัญชี LINE กับระบบนัดวัคซีน</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+  <div class="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+    <h1 class="text-2xl font-bold mb-4">ผูกบัญชี LINE กับระบบนัดวัคซีน</h1>
+    <div id="status" class="mb-4 text-gray-700">กำลังตรวจสอบข้อมูล...</div>
+    <button id="addFriendBtn" class="hidden bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded mb-4">
+      <i class="fab fa-line mr-2"></i>เพิ่มเพื่อนกับ LINE Bot
+    </button>
+    <div id="result" class="text-lg font-semibold"></div>
+  </div>
+  <div id="status"></div>
+  <script src="liff-link.js?v=2025081402"></script>
+</body>
+</html>
