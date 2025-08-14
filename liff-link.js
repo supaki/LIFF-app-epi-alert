@@ -5,10 +5,67 @@ const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwPwiSMPSdXZ9Rqo
 const BOT_BASIC_ID = '@829aobqk'; // หรือดึงจาก config ถ้าต้องการ
 
 document.addEventListener('DOMContentLoaded', async function() {
-  console.log('=== LIFF App Started (v2025081405) ==='); // Version bump for cache busting
-  const statusDiv = document.getElementById('status');
-  const resultDiv = document.getElementById('result');
+  console.log('=== LIFF App Started (v2025081406) ==='); // Version bump for cache busting
+  
+  // New UI elements
+  const statusIcon = document.getElementById('statusIcon');
+  const statusText = document.getElementById('statusText');
+  const statusDetail = document.getElementById('statusDetail');
+  const actionButtons = document.getElementById('actionButtons');
   const addFriendBtn = document.getElementById('addFriendBtn');
+  const resultDiv = document.getElementById('result');
+  
+  // Status management functions
+  function updateStatus(step, icon, text, detail = '', isLoading = false) {
+    // Update step indicators
+    updateStepIndicator(step);
+    
+    // Update status display
+    statusIcon.innerHTML = `<i class="${icon} ${isLoading ? 'pulse' : ''}"></i>`;
+    statusText.textContent = text;
+    statusDetail.textContent = detail;
+    
+    console.log(`Status: ${text} ${detail ? '- ' + detail : ''}`);
+  }
+  
+  function updateStepIndicator(currentStep) {
+    const steps = ['step1', 'step2', 'step3'];
+    const lines = ['line1', 'line2'];
+    
+    steps.forEach((stepId, index) => {
+      const stepElement = document.getElementById(stepId).querySelector('div');
+      const stepNum = index + 1;
+      
+      if (stepNum <= currentStep) {
+        stepElement.className = stepElement.className.replace('bg-gray-300 text-gray-500', 'bg-green-500 text-white');
+      } else if (stepNum === currentStep + 1) {
+        stepElement.className = stepElement.className.replace('bg-gray-300 text-gray-500', 'bg-blue-500 text-white pulse');
+      }
+    });
+    
+    // Update connecting lines
+    lines.forEach((lineId, index) => {
+      const lineElement = document.getElementById(lineId);
+      if (index + 1 < currentStep) {
+        lineElement.className = lineElement.className.replace('bg-gray-200', 'bg-green-400');
+      }
+    });
+  }
+  
+  function showSuccess(message, showButtons = false) {
+    updateStatus(3, 'fas fa-check-circle text-green-500', 'สำเร็จ!', message);
+    if (showButtons) {
+      actionButtons.classList.remove('hidden');
+      actionButtons.classList.add('slide-up');
+    }
+  }
+  
+  function showError(message) {
+    updateStatus(0, 'fas fa-exclamation-triangle text-red-500', 'เกิดข้อผิดพลาด', message);
+  }
+  
+  // Initialize
+  updateStatus(1, 'fas fa-search text-blue-500', 'กำลังตรวจสอบข้อมูล...', 'กรุณารอสักครู่', true);
 
   // ดึง cid จาก query string, hash fragment หรือจาก state parameter
   const urlParams = new URLSearchParams(window.location.search);
@@ -103,7 +160,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
   }
   if (!cid) {
-    statusDiv.textContent = 'ไม่พบเลขบัตรประชาชน (cid/pid)';
+    showError('ไม่พบเลขบัตรประชาชน (cid/pid)');
     console.log('window.location.search:', window.location.search);
     console.log('cid:', cid);
     return;
@@ -113,86 +170,92 @@ document.addEventListener('DOMContentLoaded', async function() {
     return typeof cid === 'string' && /^\d{13}$/.test(cid);
   }
   if (!cid || !validateCid(cid)) {
-    statusDiv.textContent = 'เลขบัตรประชาชน (cid) ไม่ถูกต้อง ต้องเป็นตัวเลข 13 หลัก';
-    return;
+    showError('เลขบัตรประชาชน (cid) ไม่ถูกต้อง ต้องเป็นตัวเลข 13 หลัก');
     console.log('(cid) ไม่ถูกต้อง:', cid);
+    return;
   }
 
-  // เริ่มต้น LIFF
-  try {
-    await liff.init({ liffId: '2007905473-Vqw5RZBv' }); // <-- เปลี่ยนเป็น LIFF_ID ของคุณ
-    if (!liff.isLoggedIn()) {
-      liff.login();
-      return;
-    }
-    statusDiv.textContent = 'กำลังดึงข้อมูลบัญชี LINE...';
-    const profile = await liff.getProfile();
-    const userId = profile.userId;
-    // แสดงปุ่มเพิ่มเพื่อน
-    addFriendBtn.classList.remove('hidden');
-    addFriendBtn.onclick = function() {
-      window.open('https://line.me/R/ti/p/~' + BOT_BASIC_ID, '_blank');
-    };
-    // ส่ง userId + cid ไปบันทึกใน backend
-    statusDiv.textContent = 'กำลังผูกบัญชี...';
-    const params = new URLSearchParams({
-      action: 'saveLineIdToPerson',
-      cid: cid,
-      lineUserId: userId
-    });
-    fetch(GAS_WEBAPP_URL + '?' + params.toString(), {
-      method: 'GET'
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        statusDiv.textContent = '';
-        resultDiv.textContent = 'ผูกบัญชี LINE กับระบบสำเร็จ!';
-      } else {
-        statusDiv.textContent = '';
-        resultDiv.textContent = 'เกิดข้อผิดพลาด: ' + (data.error || 'ไม่สามารถผูกบัญชีได้');
+  // CID validation passed, proceed to LIFF login
+  updateStatus(1, 'fas fa-check text-green-500', 'ตรวจสอบข้อมูลสำเร็จ', `เลขบัตรประชาชน: ${cid}`);
+  
+  // Delay for better UX
+  setTimeout(async () => {
+    // เริ่มต้น LIFF
+    try {
+      updateStatus(2, 'fab fa-line text-blue-500', 'กำลังเชื่อมต่อ LINE...', 'กรุณารอสักครู่', true);
+      
+      await liff.init({ liffId: '2007905473-Vqw5RZBv' }); // <-- เปลี่ยนเป็น LIFF_ID ของคุณ
+      if (!liff.isLoggedIn()) {
+        updateStatus(2, 'fab fa-line text-blue-500', 'กำลังเข้าสู่ระบบ LINE...', 'กรุณาเข้าสู่ระบบ LINE', true);
+        liff.login();
+        return;
       }
-    })
-    .catch(err => {
-      console.error('Fetch failed, trying alternative method:', err);
       
-      // Fallback 1: ใช้ Image request (bypass CORS)
-      statusDiv.textContent = 'กำลังผูกบัญชี (วิธีทางเลือก)...';
-      const fallbackUrl = GAS_WEBAPP_URL + '?' + params.toString() + '&_callback=image';
-      
-      // สร้าง invisible image เพื่อทริกเกอร์ GET request
-      const img = new Image();
-      img.onload = function() {
-        console.log('Image fallback request completed');
-        statusDiv.textContent = '';
-        resultDiv.innerHTML = '<div class="text-green-600">✅ ผูกบัญชี LINE กับระบบสำเร็จ!</div>';
-        
-        // แสดงปุ่มเพิ่มเพื่อน
-        addFriendBtn.classList.remove('hidden');
+      updateStatus(2, 'fab fa-line text-green-500', 'เข้าสู่ระบบ LINE สำเร็จ', 'กำลังดึงข้อมูลผู้ใช้...');
+      const profile = await liff.getProfile();
+      const userId = profile.userId;
+      // Setup add friend button
+      addFriendBtn.onclick = function() {
+        window.open('https://line.me/R/ti/p/~' + BOT_BASIC_ID, '_blank');
       };
       
-      img.onerror = function() {
-        console.log('Image fallback request sent (may still work)');
-        statusDiv.textContent = '';
-        resultDiv.innerHTML = '<div class="text-green-600">✅ ผูกบัญชี LINE กับระบบสำเร็จ!</div><div class="text-sm text-gray-500 mt-2">หากไม่ได้รับข้อความต้อนรับ กรุณาติดต่อเจ้าหน้าที่</div>';
-        
-        // แสดงปุ่มเพิ่มเพื่อน
-        addFriendBtn.classList.remove('hidden');
-      };
+      // ส่ง userId + cid ไปบันทึกใน backend
+      updateStatus(3, 'fas fa-link text-blue-500', 'กำลังผูกบัญชี...', 'กำลังบันทึกข้อมูลลงระบบ', true);
       
-      // Trigger request
-      img.src = fallbackUrl;
+      const params = new URLSearchParams({
+        action: 'saveLineIdToPerson',
+        cid: cid,
+        lineUserId: userId
+      });
       
-      // Fallback 2: หากไม่สำเร็จใน 5 วินาที ให้แสดงผลลัพธ์
-      setTimeout(() => {
-        if (statusDiv.textContent.includes('กำลังผูกบัญชี')) {
-          statusDiv.textContent = '';
-          resultDiv.innerHTML = '<div class="text-green-600">✅ ผูกบัญชี LINE กับระบบสำเร็จ!</div><div class="text-sm text-gray-500 mt-2">ระบบอาจใช้เวลาสักครู่ในการอัพเดท</div>';
-          addFriendBtn.classList.remove('hidden');
+      fetch(GAS_WEBAPP_URL + '?' + params.toString(), {
+        method: 'GET'
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', true);
+          // Show user name if available
+          if (data.personName) {
+            statusDetail.textContent = `สวัสดี ${data.personName}`;
+          }
+        } else {
+          showError(data.error || 'ไม่สามารถผูกบัญชีได้');
         }
-      }, 5000);
-    });
-  } catch (e) {
-    statusDiv.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อ LIFF: ' + e.message;
-  }
+      })
+      .catch(err => {
+        console.error('Fetch failed, trying alternative method:', err);
+        
+        // Fallback 1: ใช้ Image request (bypass CORS)
+        updateStatus(3, 'fas fa-link text-yellow-500', 'กำลังผูกบัญชี (วิธีทางเลือก)...', 'ใช้วิธีสำรองในการส่งข้อมูล', true);
+        const fallbackUrl = GAS_WEBAPP_URL + '?' + params.toString() + '&_callback=image';
+        
+        // สร้าง invisible image เพื่อทริกเกอร์ GET request
+        const img = new Image();
+        img.onload = function() {
+          console.log('Image fallback request completed');
+          showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', true);
+        };
+        
+        img.onerror = function() {
+          console.log('Image fallback request sent (may still work)');
+          showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', true);
+          statusDetail.textContent = 'หากไม่ได้รับข้อความต้อนรับ กรุณาติดต่อเจ้าหน้าที่';
+        };
+        
+        // Trigger request
+        img.src = fallbackUrl;
+        
+        // Fallback 2: หากไม่สำเร็จใน 5 วินาที ให้แสดงผลลัพธ์
+        setTimeout(() => {
+          if (statusText.textContent.includes('กำลังผูกบัญชี')) {
+            showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', true);
+            statusDetail.textContent = 'ระบบอาจใช้เวลาสักครู่ในการอัพเดท';
+          }
+        }, 5000);
+      });
+    } catch (e) {
+      showError('เกิดข้อผิดพลาดในการเชื่อมต่อ LIFF: ' + e.message);
+    }
+  }, 1000); // 1 second delay for better UX
 });
