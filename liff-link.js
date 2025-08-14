@@ -35,18 +35,26 @@ document.addEventListener('DOMContentLoaded', async function() {
         // decode ค่า liff.state
         const decodedState = decodeURIComponent(liffState);
         console.log('decoded liff.state:', decodedState);
+        console.log('decodedState type:', typeof decodedState);
+        console.log('decodedState length:', decodedState.length);
+        console.log('decodedState startsWith #:', decodedState.startsWith('#'));
         
         // ตรวจสอบว่า decoded state เป็น query string หรือ hash fragment
         if (decodedState.startsWith('?')) {
+          console.log('Processing as query string');
           const stateParams = new URLSearchParams(decodedState);
           cid = stateParams.get('cid');
           console.log('cid from liff.state (query):', cid);
         } else if (decodedState.startsWith('#')) {
+          console.log('Processing as hash fragment');
           // สำหรับ hash fragment เช่น #cid=3800600588871
-          const hashParams = new URLSearchParams(decodedState.substring(1));
+          const hashString = decodedState.substring(1);
+          console.log('hashString after removing #:', hashString);
+          const hashParams = new URLSearchParams(hashString);
           cid = hashParams.get('cid');
           console.log('cid from liff.state (hash):', cid);
         } else {
+          console.log('Processing as plain string');
           // ลองแปลง string ธรรมดาเป็น URLSearchParams
           const stateParams = new URLSearchParams('?' + decodedState);
           cid = stateParams.get('cid');
