@@ -35,11 +35,22 @@ document.addEventListener('DOMContentLoaded', async function() {
         // decode ค่า liff.state
         const decodedState = decodeURIComponent(liffState);
         console.log('decoded liff.state:', decodedState);
-        // ตรวจสอบว่า decoded state เป็น query string หรือไม่
+        
+        // ตรวจสอบว่า decoded state เป็น query string หรือ hash fragment
         if (decodedState.startsWith('?')) {
           const stateParams = new URLSearchParams(decodedState);
           cid = stateParams.get('cid');
-          console.log('cid from liff.state:', cid);
+          console.log('cid from liff.state (query):', cid);
+        } else if (decodedState.startsWith('#')) {
+          // สำหรับ hash fragment เช่น #cid=3800600588871
+          const hashParams = new URLSearchParams(decodedState.substring(1));
+          cid = hashParams.get('cid');
+          console.log('cid from liff.state (hash):', cid);
+        } else {
+          // ลองแปลง string ธรรมดาเป็น URLSearchParams
+          const stateParams = new URLSearchParams('?' + decodedState);
+          cid = stateParams.get('cid');
+          console.log('cid from liff.state (plain):', cid);
         }
       } catch (e) {
         console.log('Error decoding liff.state:', e);
