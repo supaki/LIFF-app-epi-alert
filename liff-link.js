@@ -5,7 +5,7 @@ const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwPwiSMPSdXZ9Rqo
 const BOT_BASIC_ID = '@829aobqk'; // หรือดึงจาก config ถ้าต้องการ
 
 document.addEventListener('DOMContentLoaded', async function() {
-  console.log('=== LIFF App Started (v2025081407) ==='); // Version bump for cache busting
+  console.log('=== LIFF App Started (v2025081408) ==='); // Version bump for cache busting
   
   // New UI elements
   const statusIcon = document.getElementById('statusIcon');
@@ -247,11 +247,28 @@ document.addEventListener('DOMContentLoaded', async function() {
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', true);
+          showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', false); // ไม่แสดงปุ่ม
           // Show user name if available
           if (data.personName) {
-            statusDetail.textContent = `สวัสดี ${data.personName}`;
+            statusDetail.textContent = `สวัสดี ${data.personName} - กำลังเปิด LINE Bot...`;
           }
+          
+          // เปิด LINE Bot อัตโนมัติหลังจากผูกบัญชีสำเร็จ
+          setTimeout(() => {
+            updateStatus(3, 'fab fa-line text-green-500', 'เปิด LINE Bot สำเร็จ!', 'คุณสามารถปิดหน้าต่างนี้ได้');
+            try {
+              const lineUrl = 'https://line.me/R/ti/p/~' + BOT_BASIC_ID;
+              console.log('Auto-opening LINE Bot:', lineUrl);
+              window.open(lineUrl, '_blank');
+            } catch (e) {
+              console.error('Failed to open LINE Bot:', e);
+              // Fallback: แสดงปุ่มถ้าเปิดอัตโนมัติไม่ได้
+              if (actionButtons) {
+                actionButtons.classList.remove('hidden');
+                actionButtons.classList.add('slide-up');
+              }
+            }
+          }, 2000);
         } else {
           showError(data.error || 'ไม่สามารถผูกบัญชีได้');
         }
@@ -267,13 +284,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         const img = new Image();
         img.onload = function() {
           console.log('Image fallback request completed');
-          showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', true);
+          showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', false);
+          autoOpenLineBot();
         };
         
         img.onerror = function() {
           console.log('Image fallback request sent (may still work)');
-          showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', true);
+          showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', false);
           statusDetail.textContent = 'หากไม่ได้รับข้อความต้อนรับ กรุณาติดต่อเจ้าหน้าที่';
+          autoOpenLineBot();
         };
         
         // Trigger request
@@ -282,13 +301,32 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Fallback 2: หากไม่สำเร็จใน 5 วินาที ให้แสดงผลลัพธ์
         setTimeout(() => {
           if (statusText.textContent.includes('กำลังผูกบัญชี')) {
-            showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', true);
+            showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', false);
             statusDetail.textContent = 'ระบบอาจใช้เวลาสักครู่ในการอัพเดท';
+            autoOpenLineBot();
           }
         }, 5000);
       });
     } catch (e) {
       showError('เกิดข้อผิดพลาดในการเชื่อมต่อ LIFF: ' + e.message);
+    }
+    // ฟังก์ชันเปิด LINE Bot อัตโนมัติ
+    function autoOpenLineBot() {
+      setTimeout(() => {
+        updateStatus(3, 'fab fa-line text-green-500', 'เปิด LINE Bot สำเร็จ!', 'คุณสามารถปิดหน้าต่างนี้ได้');
+        try {
+          const lineUrl = 'https://line.me/R/ti/p/~' + BOT_BASIC_ID;
+          console.log('Auto-opening LINE Bot:', lineUrl);
+          window.open(lineUrl, '_blank');
+        } catch (e) {
+          console.error('Failed to open LINE Bot:', e);
+          // Fallback: แสดงปุ่มถ้าเปิดอัตโนมัติไม่ได้
+          if (actionButtons) {
+            actionButtons.classList.remove('hidden');
+            actionButtons.classList.add('slide-up');
+          }
+        }
+      }, 2000);
     }
   }, 1000); // 1 second delay for better UX
 });
