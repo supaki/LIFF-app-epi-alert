@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>กำลังเปลี่ยนเส้นทาง...</title>
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #00e676, #00b900);
+            color: white;
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+        }
+        .loading {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="loading">กำลังเปลี่ยนเส้นทางไปยัง LINE...</div>
+        <div class="spinner"></div>
+        <p>กรุณารอสักครู่</p>
+    </div>
+
+    <script>
+        // Debug function
+        function debugLog(message, data) {
+            console.log('REDIRECT DEBUG:', message, data);
+            // แสดงใน UI ด้วยเพื่อ debug
+            const debugDiv = document.getElementById('debug-info') || (() => {
+                const div = document.createElement('div');
+                div.id = 'debug-info';
+                div.style.cssText = 'position:fixed;bottom:10px;left:10px;background:rgba(0,0,0,0.8);color:white;padding:10px;font-size:12px;max-width:300px;word-break:break-all;z-index:9999;';
+                document.body.appendChild(div);
+                return div;
+            })();
+            debugDiv.innerHTML += `<div>${message}: ${JSON.stringify(data)}</div>`;
+        }
+
+        try {
+            debugLog('Page loaded', 'redirect.html started');
+            debugLog('URL', window.location.href);
+            debugLog('Search params', window.location.search);
+            
+            // ดึง CID จาก URL parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const cid = urlParams.get('cid');
+            
+            debugLog('Extracted CID', cid);
+            
+            if (cid && cid.trim() !== '') {
+                // เก็บ CID ไว้ใน localStorage
+                try {
+                    localStorage.setItem('pendingCid', cid);
+                    debugLog('Stored in localStorage', cid);
+                } catch (e) {
+                    debugLog('localStorage Error', e.message);
+                }
+                
+                // อัปเดต UI
+                document.querySelector('.loading').textContent = `กำลังเปลี่ยนเส้นทางไปยัง LINE... (CID: ${cid.substring(0, 4)}****)`;
+                
+                // Redirect ไปยัง LIFF URL โดยไม่ต้องส่ง cid parameter
+                const liffUrl = 'https://liff.line.me/2007905473-Vqw5RZBv';
+                debugLog('Will redirect to', liffUrl);
+                
+                // หน่วงเวลาเล็กน้อยแล้ว redirect
+                setTimeout(() => {
+                    debugLog('Redirecting now...', liffUrl);
+                    window.location.href = liffUrl;
+                }, 3000); // เพิ่มเวลาให้เห็น debug info
+                
+            } else {
+                debugLog('No CID found', 'Showing error');
+                // ถ้าไม่มี CID ให้แสดง error
+                document.querySelector('.container').innerHTML = `
+                    <div class="loading" style="color: #ff5252;">ผิดพลาด!</div>
+                    <p>ไม่พบเลขบัตรประชาชนในลิงก์</p>
+                    <p>URL: ${window.location.href}</p>
+                    <p>Search: ${window.location.search}</p>
+                    <p>กรุณาติดต่อเจ้าหน้าที่</p>
+                `;
+            }
+        } catch (error) {
+            debugLog('Script Error', error.message);
+            document.querySelector('.container').innerHTML = `
+                <div class="loading" style="color: #ff5252;">เกิดข้อผิดพลาด!</div>
+                <p>Error: ${error.message}</p>
+                <p>กรุณาติดต่อเจ้าหน้าที่</p>
+            `;
+        }
+    </script>
+</body>
+</html>

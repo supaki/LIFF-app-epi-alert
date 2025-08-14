@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>กำลังเปลี่ยนเส้นทาง...v3</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #00e676, #00b900);
+            color: white;
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+        }
+        .debug {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            font-size: 12px;
+            max-width: 300px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>กำลังเปลี่ยนเส้นทางไปยัง LINE...</h2>
+        <p id="status">กำลังตรวจสอบข้อมูล...</p>
+    </div>
+    
+    <div id="debug" class="debug"></div>
+
+    <script>
+        function debug(message) {
+            console.log('DEBUG:', message);
+            document.getElementById('debug').innerHTML += '<div>' + message + '</div>';
+        }
+        
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        debug('Script started');
+        debug('URL: ' + window.location.href);
+        debug('Search: ' + window.location.search);
+
+        // ดึง CID จาก URL parameter
+        var urlParams = new URLSearchParams(window.location.search);
+        var cid = urlParams.get('cid');
+        
+        debug('CID: ' + cid);
+
+        if (cid && cid.length > 0) {
+            updateStatus('พบเลขบัตร: ' + cid.substring(0, 4) + '****');
+            
+            try {
+                // ใช้ URL fragment แทน localStorage เพื่อส่งข้าม domain
+                var liffUrl = 'https://liff.line.me/2007905473-Vqw5RZBv#cid=' + encodeURIComponent(cid);
+                debug('Will redirect to: ' + liffUrl);
+                updateStatus('กำลังไปยัง LINE...');
+                
+                setTimeout(function() {
+                    debug('Redirecting now to: ' + liffUrl);
+                    window.location.href = liffUrl;
+                }, 2000);
+                
+            } catch (e) {
+                debug('Error: ' + e.message);
+                updateStatus('เกิดข้อผิดพลาด: ' + e.message);
+            }
+        } else {
+            updateStatus('ไม่พบเลขบัตรประชาชนในลิงก์');
+            debug('No CID found in URL');
+        }
+    </script>
+</body>
+</html>
