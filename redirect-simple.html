@@ -3,84 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>กำลังเปลี่ยนเส้นทาง...v3</title>
+    <title>เปลี่ยนเส้นทาง...</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
             margin: 0;
-            background: linear-gradient(135deg, #00e676, #00b900);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            opacity: 0;
         }
-        .container {
-            text-align: center;
-            padding: 20px;
-        }
-        .debug {
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 10px;
-            font-size: 12px;
-            max-width: 300px;
-            word-break: break-all;
-        }
+        .hidden { display: none; }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h2>กำลังเปลี่ยนเส้นทางไปยัง LINE...</h2>
-        <p id="status">กำลังตรวจสอบข้อมูล...</p>
-    </div>
-    
-    <div id="debug" class="debug"></div>
-
+<body class="hidden">
     <script>
-        function debug(message) {
-            console.log('DEBUG:', message);
-            document.getElementById('debug').innerHTML += '<div>' + message + '</div>';
-        }
+        console.log('QR Redirect Script started');
+        console.log('URL:', window.location.href);
         
-        function updateStatus(message) {
-            document.getElementById('status').textContent = message;
-        }
-
-        debug('Script started');
-        debug('URL: ' + window.location.href);
-        debug('Search: ' + window.location.search);
-
         // ดึง CID จาก URL parameter
         var urlParams = new URLSearchParams(window.location.search);
         var cid = urlParams.get('cid');
         
-        debug('CID: ' + cid);
+        console.log('CID found:', cid);
 
         if (cid && cid.length > 0) {
-            updateStatus('พบเลขบัตร: ' + cid.substring(0, 4) + '****');
-            
-            try {
-                // ใช้ URL fragment แทน localStorage เพื่อส่งข้าม domain
-                var liffUrl = 'https://liff.line.me/2007905473-Vqw5RZBv#cid=' + encodeURIComponent(cid);
-                debug('Will redirect to: ' + liffUrl);
-                updateStatus('กำลังไปยัง LINE...');
-                
-                setTimeout(function() {
-                    debug('Redirecting now to: ' + liffUrl);
-                    window.location.href = liffUrl;
-                }, 2000);
-                
-            } catch (e) {
-                debug('Error: ' + e.message);
-                updateStatus('เกิดข้อผิดพลาด: ' + e.message);
-            }
+            // Redirect ทันทีไปยัง LIFF URL โดยไม่แสดงหน้า loading
+            var liffUrl = 'https://liff.line.me/2007905473-Vqw5RZBv#cid=' + encodeURIComponent(cid);
+            console.log('Redirecting immediately to:', liffUrl);
+            window.location.replace(liffUrl);
         } else {
-            updateStatus('ไม่พบเลขบัตรประชาชนในลิงก์');
-            debug('No CID found in URL');
+            // หากไม่พบ CID แสดง error page
+            document.body.innerHTML = `
+                <div style="display:flex;justify-content:center;align-items:center;height:100vh;text-align:center;padding:20px;">
+                    <div>
+                        <h2>⚠️ ข้อผิดพลาด</h2>
+                        <p>ไม่พบเลขบัตรประชาชนในลิงก์</p>
+                        <p style="font-size:12px;opacity:0.8;">กรุณาติดต่อเจ้าหน้าที่</p>
+                    </div>
+                </div>
+            `;
+            document.body.classList.remove('hidden');
+            document.body.style.opacity = '1';
         }
     </script>
 </body>
