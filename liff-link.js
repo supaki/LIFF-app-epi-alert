@@ -227,10 +227,12 @@ document.addEventListener('DOMContentLoaded', async function() {
       updateStatus(2, 'fab fa-line text-green-500', 'เข้าสู่ระบบ LINE สำเร็จ', 'กำลังดึงข้อมูลผู้ใช้...');
       const profile = await liff.getProfile();
       const userId = profile.userId;
-      // Setup add friend button
-      addFriendBtn.onclick = function() {
-        window.open('https://line.me/R/ti/p/~' + BOT_BASIC_ID, '_blank');
-      };
+      // Setup add friend button (will be shown only if needed)
+      if (addFriendBtn) {
+        addFriendBtn.onclick = function() {
+          window.open('https://line.me/R/ti/p/~' + BOT_BASIC_ID, '_blank');
+        };
+      }
       
       // ส่ง userId + cid ไปบันทึกใน backend
       updateStatus(3, 'fas fa-link text-blue-500', 'กำลังผูกบัญชี...', 'กำลังบันทึกข้อมูลลงระบบ', true);
@@ -250,24 +252,15 @@ document.addEventListener('DOMContentLoaded', async function() {
           showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', false); // ไม่แสดงปุ่ม
           // Show user name if available
           if (data.personName) {
-            statusDetail.textContent = `สวัสดี ${data.personName} - กำลังเปิด LINE Bot...`;
+            statusDetail.textContent = `สวัสดี ${data.personName} - ระบบจะส่งข้อความต้อนรับให้คุณ`;
+          } else {
+            statusDetail.textContent = 'ระบบจะส่งข้อความต้อนรับให้คุณผ่าน LINE Bot';
           }
           
-          // เปิด LINE Bot อัตโนมัติหลังจากผูกบัญชีสำเร็จ
+          // แสดงสถานะการเชื่อมต่อสมบูรณ์
           setTimeout(() => {
-            updateStatus(3, 'fab fa-line text-green-500', 'เปิด LINE Bot สำเร็จ!', 'คุณสามารถปิดหน้าต่างนี้ได้');
-            try {
-              const lineUrl = 'https://line.me/R/ti/p/~' + BOT_BASIC_ID;
-              console.log('Auto-opening LINE Bot:', lineUrl);
-              window.open(lineUrl, '_blank');
-            } catch (e) {
-              console.error('Failed to open LINE Bot:', e);
-              // Fallback: แสดงปุ่มถ้าเปิดอัตโนมัติไม่ได้
-              if (actionButtons) {
-                actionButtons.classList.remove('hidden');
-                actionButtons.classList.add('slide-up');
-              }
-            }
+            updateStatus(3, 'fas fa-check-circle text-green-500', 'เชื่อมต่อสำเร็จ!', 
+              'ระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot\nคุณสามารถปิดหน้านี้ได้');
           }, 2000);
         } else {
           showError(data.error || 'ไม่สามารถผูกบัญชีได้');
@@ -285,14 +278,20 @@ document.addEventListener('DOMContentLoaded', async function() {
         img.onload = function() {
           console.log('Image fallback request completed');
           showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', false);
-          autoOpenLineBot();
+          setTimeout(() => {
+            updateStatus(3, 'fas fa-check-circle text-green-500', 'เชื่อมต่อสำเร็จ!', 
+              'ระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot\nคุณสามารถปิดหน้านี้ได้');
+          }, 2000);
         };
         
         img.onerror = function() {
           console.log('Image fallback request sent (may still work)');
           showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', false);
           statusDetail.textContent = 'หากไม่ได้รับข้อความต้อนรับ กรุณาติดต่อเจ้าหน้าที่';
-          autoOpenLineBot();
+          setTimeout(() => {
+            updateStatus(3, 'fas fa-check-circle text-green-500', 'เชื่อมต่อสำเร็จ!', 
+              'ระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot\nคุณสามารถปิดหน้านี้ได้');
+          }, 2000);
         };
         
         // Trigger request
@@ -300,9 +299,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Fallback 2: หากไม่สำเร็จใน 5 วินาที ให้แสดงผลลัพธ์
         setTimeout(() => {
-          if (statusText.textContent.includes('กำลังผูกบัญชี')) {
-            showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', true);
+          if (statusText && statusText.textContent.includes('กำลังผูกบัญชี')) {
+            showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', false);
             statusDetail.textContent = 'ระบบอาจใช้เวลาสักครู่ในการอัพเดท';
+            setTimeout(() => {
+              updateStatus(3, 'fas fa-check-circle text-green-500', 'เชื่อมต่อสำเร็จ!', 
+                'ระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot\nคุณสามารถปิดหน้านี้ได้');
+            }, 2000);
           }
         }, 5000);
       });
