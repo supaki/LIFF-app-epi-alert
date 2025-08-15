@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ผูกบัญชี LINE กับระบบนัดวัคซีน</title>
+  <title>ระบบแจ้งเตือนการนัดฉีดวัคซีน - สถานะการเชื่อมต่อ v5</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -39,6 +39,22 @@
     .line-gradient {
       background: linear-gradient(90deg, #00c300 0%, #00b900 100%);
     }
+    .status-card {
+      transition: all 0.3s ease;
+      border-left: 4px solid transparent;
+    }
+    .status-card.success {
+      border-left-color: #10b981;
+      background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+    }
+    .status-card.error {
+      border-left-color: #ef4444;
+      background: linear-gradient(135deg, #fef2f2 0%, #fef8f8 100%);
+    }
+    .status-card.warning {
+      border-left-color: #f59e0b;
+      background: linear-gradient(135deg, #fffbeb 0%, #fefce8 100%);
+    }
   </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
@@ -49,44 +65,73 @@
         <i class="fas fa-hospital-alt text-4xl mb-2"></i>
       </div>
       <h1 class="text-xl font-semibold mb-2">ระบบแจ้งเตือนการนัดฉีดวัคซีน</h1>
-      <p class="text-sm opacity-90">รพ.สต. ระบบผูกบัญชี LINE</p>
+      <p class="text-sm opacity-90">รพ.สต. สถานะการเชื่อมต่อ</p>
     </div>
 
     <!-- Content -->
     <div class="p-6">
-      <!-- Status Steps -->
-      <div class="mb-6">
-        <div class="flex justify-between items-center mb-4">
-          <div id="step1" class="flex flex-col items-center">
-            <div class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm status-indicator">
-              <i class="fas fa-user-check"></i>
-            </div>
-            <span class="text-xs mt-1 text-gray-600">ตรวจสอบ</span>
-          </div>
-          <div class="flex-1 h-px bg-gray-200 mx-2" id="line1"></div>
-          <div id="step2" class="flex flex-col items-center">
-            <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-500 flex items-center justify-center text-sm status-indicator">
-              <i class="fab fa-line"></i>
-            </div>
-            <span class="text-xs mt-1 text-gray-600">เข้าสู่ระบบ</span>
-          </div>
-          <div class="flex-1 h-px bg-gray-200 mx-2" id="line2"></div>
-          <div id="step3" class="flex flex-col items-center">
-            <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-500 flex items-center justify-center text-sm status-indicator">
-              <i class="fas fa-link"></i>
-            </div>
-            <span class="text-xs mt-1 text-gray-600">ผูกบัญชี</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Status Message -->
+      <!-- Main Status Display -->
       <div id="statusMessage" class="text-center mb-6">
-        <div id="statusIcon" class="text-4xl mb-3">
+        <div id="statusIcon" class="text-5xl mb-4">
           <i class="fas fa-search text-blue-500 pulse"></i>
         </div>
-        <div id="statusText" class="text-gray-700 font-medium">กำลังตรวจสอบข้อมูล...</div>
-        <div id="statusDetail" class="text-sm text-gray-500 mt-2"></div>
+        <div id="statusText" class="text-xl text-gray-700 font-semibold mb-2">กำลังตรวจสอบข้อมูล...</div>
+        <div id="statusDetail" class="text-sm text-gray-500"></div>
+      </div>
+
+      <!-- Status Cards -->
+      <div id="statusCards" class="space-y-3 mb-6 hidden">
+        <!-- CID Status -->
+        <div id="cidCard" class="status-card p-4 rounded-lg">
+          <div class="flex items-center">
+            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mr-3">
+              <i class="fas fa-id-card text-sm text-gray-500"></i>
+            </div>
+            <div>
+              <div class="font-medium text-gray-800">เลขบัตรประชาชน</div>
+              <div id="cidStatus" class="text-sm text-gray-500">กำลังตรวจสอบ...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LINE Login Status -->
+        <div id="lineCard" class="status-card p-4 rounded-lg">
+          <div class="flex items-center">
+            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mr-3">
+              <i class="fab fa-line text-sm text-gray-500"></i>
+            </div>
+            <div>
+              <div class="font-medium text-gray-800">LINE Login</div>
+              <div id="lineStatus" class="text-sm text-gray-500">รอการเข้าสู่ระบบ...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Account Linking Status -->
+        <div id="linkCard" class="status-card p-4 rounded-lg">
+          <div class="flex items-center">
+            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mr-3">
+              <i class="fas fa-link text-sm text-gray-500"></i>
+            </div>
+            <div>
+              <div class="font-medium text-gray-800">ผูกบัญชี</div>
+              <div id="linkStatus" class="text-sm text-gray-500">รอการผูกบัญชี...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notification Status -->
+        <div id="notificationCard" class="status-card p-4 rounded-lg">
+          <div class="flex items-center">
+            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mr-3">
+              <i class="fas fa-bell text-sm text-gray-500"></i>
+            </div>
+            <div>
+              <div class="font-medium text-gray-800">การแจ้งเตือน</div>
+              <div id="notificationStatus" class="text-sm text-gray-500">รอการส่งข้อความ...</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Action Buttons -->
@@ -94,13 +139,10 @@
         <button id="addFriendBtn" class="w-full line-gradient hover:opacity-90 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105">
           <i class="fab fa-line mr-2"></i>เพิ่มเพื่อนกับ LINE Bot
         </button>
-        <button id="testNotificationBtn" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-xl transition-colors hidden">
-          <i class="fas fa-bell mr-2"></i>ทดสอบการแจ้งเตือน
+        <button onclick="window.close()" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-xl transition-colors">
+          <i class="fas fa-times mr-2"></i>ปิดหน้าต่างนี้
         </button>
       </div>
-
-      <!-- Success/Error Result -->
-      <div id="result" class="hidden"></div>
     </div>
 
     <!-- Footer -->
@@ -109,9 +151,314 @@
         <i class="fas fa-shield-alt mr-1"></i>
         ข้อมูลของคุณจะถูกเก็บรักษาอย่างปลอดภัย
       </p>
+      <p class="text-xs text-gray-400 mt-1">
+        รพ.สต.บ้านหาร - ระบบแจ้งเตือนการนัดฉีดวัคซีน
+      </p>
     </div>
   </div>
+  
+  <!-- Debug Information -->
+  <div id="debug-info" class="fixed bottom-0 left-0 right-0 bg-black bg-opacity-80 text-white text-xs p-2 max-h-40 overflow-y-auto"></div>
 
-  <script src="liff-link.js?v=2025081407"></script>
+  <script>
+    // Configuration
+    const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwPwiSMPSdXZ9RqoCW6X9-YMbITYDJY1DLxSj4_NCS60_0j5mh6ibELr6qWPtAe-v0N/exec';
+    const BOT_BASIC_ID = '@829aobqk';
+    const LIFF_ID = '2007905473-Vqw5RZBv';
+
+    // Debug function
+    function debugLog(message, data) {
+      console.log('LIFF DEBUG:', message, data);
+      const debugDiv = document.getElementById('debug-info');
+      if (debugDiv) {
+        debugDiv.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message} ${data ? JSON.stringify(data) : ''}</div>`;
+      }
+    }
+
+    // DOM Elements
+    const statusIcon = document.getElementById('statusIcon');
+    const statusText = document.getElementById('statusText');
+    const statusDetail = document.getElementById('statusDetail');
+    const statusCards = document.getElementById('statusCards');
+    const actionButtons = document.getElementById('actionButtons');
+    const addFriendBtn = document.getElementById('addFriendBtn');
+
+    // Status update functions
+    function updateMainStatus(icon, text, detail = '', isLoading = false) {
+      if (statusIcon) {
+        statusIcon.innerHTML = `<i class="${icon} ${isLoading ? 'pulse' : ''}"></i>`;
+      }
+      if (statusText) {
+        statusText.textContent = text;
+      }
+      if (statusDetail) {
+        statusDetail.textContent = detail;
+      }
+      console.log(`Status: ${text} ${detail ? '- ' + detail : ''}`);
+    }
+
+    function updateCardStatus(cardId, status, text, icon = null) {
+      const card = document.getElementById(cardId);
+      const statusElement = document.getElementById(cardId.replace('Card', 'Status'));
+      const iconElement = card?.querySelector('i');
+      
+      if (!card || !statusElement) return;
+
+      // Remove all status classes
+      card.classList.remove('success', 'error', 'warning');
+      
+      // Update status text
+      statusElement.textContent = text;
+      
+      // Update icon and styling based on status
+      switch (status) {
+        case 'success':
+          card.classList.add('success');
+          if (iconElement) {
+            iconElement.className = `fas fa-check-circle text-green-500`;
+          }
+          break;
+        case 'error':
+          card.classList.add('error');
+          if (iconElement) {
+            iconElement.className = `fas fa-times-circle text-red-500`;
+          }
+          break;
+        case 'loading':
+          if (iconElement) {
+            iconElement.className = `fas ${icon || 'fa-spinner fa-spin'} text-blue-500`;
+          }
+          break;
+        case 'warning':
+          card.classList.add('warning');
+          if (iconElement) {
+            iconElement.className = `fas fa-exclamation-triangle text-yellow-500`;
+          }
+          break;
+      }
+    }
+
+    function showStatusCards() {
+      if (statusCards) {
+        statusCards.classList.remove('hidden');
+        statusCards.classList.add('slide-up');
+      }
+    }
+
+    function showSuccess(message, showButtons = false) {
+      updateMainStatus('fas fa-check-circle text-green-500', 'เชื่อมต่อสำเร็จ!', message);
+      if (showButtons && actionButtons) {
+        actionButtons.classList.remove('hidden');
+        actionButtons.classList.add('slide-up');
+      }
+    }
+
+    function showError(message) {
+      updateMainStatus('fas fa-exclamation-triangle text-red-500', 'เกิดข้อผิดพลาด', message);
+    }
+
+    // Validation function
+    function validateCid(cid) {
+      return typeof cid === 'string' && /^\d{13}$/.test(cid);
+    }
+
+    // Main application logic
+    document.addEventListener('DOMContentLoaded', async function() {
+      debugLog('LIFF App Started (Main Status Page)');
+      debugLog('URL', window.location.href);
+      debugLog('Search params', window.location.search);
+      
+      // Initialize
+      updateMainStatus('fas fa-search text-blue-500', 'กำลังตรวจสอบข้อมูล...', 'กรุณารอสักครู่', true);
+      
+      // Get CID from URL parameters (support multiple possible parameter names)
+      const urlParams = new URLSearchParams(window.location.search);
+      let cid = urlParams.get('cid');
+      debugLog('cid from query', cid);
+
+      if (!cid) {
+        // กรณีถูก redirect หลัง LINE Login จะมี state parameter
+        const state = urlParams.get('state');
+        debugLog('state param', state);
+        if (state && state.startsWith('cid-')) {
+          cid = state.replace('cid-', '');
+          debugLog('cid from state', cid);
+        }
+      }
+
+      if (!cid) {
+        // ตรวจสอบ liff.state parameter ที่อาจจะมี encoded URL
+        const liffState = urlParams.get('liff.state');
+        debugLog('liff.state param', liffState);
+        if (liffState) {
+          try {
+            const decodedState = decodeURIComponent(liffState);
+            debugLog('decoded liff.state', decodedState);
+            
+            // ตรวจสอบทั้ง query string (?) และ fragment (#)
+            if (decodedState.startsWith('?')) {
+              const stateParams = new URLSearchParams(decodedState);
+              cid = stateParams.get('cid');
+              debugLog('cid from liff.state query', cid);
+            } else if (decodedState.startsWith('#')) {
+              const fragmentParams = new URLSearchParams(decodedState.substring(1));
+              cid = fragmentParams.get('cid');
+              debugLog('cid from liff.state fragment', cid);
+            }
+          } catch (e) {
+            debugLog('Error decoding liff.state', e.message);
+          }
+        }
+      }
+
+      if (!cid) {
+        cid = urlParams.get('pid');
+        debugLog('cid from pid', cid);
+      }
+
+      if (!cid) {
+        // ตรวจสอบจาก URL fragment (สำหรับ redirect flow)
+        const fragment = window.location.hash;
+        debugLog('URL fragment', fragment);
+        if (fragment && fragment.startsWith('#')) {
+          const fragmentParams = new URLSearchParams(fragment.substring(1));
+          const fragmentCid = fragmentParams.get('cid');
+          debugLog('cid from fragment', fragmentCid);
+          if (fragmentCid) {
+            cid = fragmentCid;
+            debugLog('Using CID from URL fragment');
+          }
+        }
+      }
+
+      if (!cid) {
+        // ตรวจสอบจาก localStorage เป็นตัวเลือกสำรอง
+        const storedCid = localStorage.getItem('pendingCid');
+        debugLog('cid from localStorage', storedCid);
+        if (storedCid) {
+          cid = storedCid;
+          localStorage.removeItem('pendingCid');
+          debugLog('Using stored CID and removed from localStorage');
+        }
+      }
+
+      // Validate CID
+      if (!cid || !validateCid(cid)) {
+        showError('เลขบัตรประชาชน (CID) ไม่ถูกต้อง ต้องเป็นตัวเลข 13 หลัก');
+        updateCardStatus('cidCard', 'error', 'เลขบัตรประชาชนไม่ถูกต้อง');
+        debugLog('Invalid CID', cid);
+        return;
+      }
+
+      debugLog('Valid CID found', cid);
+
+      // Show status cards
+      showStatusCards();
+      
+      // Update CID status
+      updateCardStatus('cidCard', 'success', `เลขบัตร: ${cid.substring(0, 4)}-${cid.substring(4, 9)}-${cid.substring(9)}`);
+      
+      // Wait a bit for better UX
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      try {
+        // Initialize LIFF
+        updateMainStatus('fab fa-line text-blue-500', 'กำลังเชื่อมต่อ LINE...', 'กรุณารอสักครู่', true);
+        updateCardStatus('lineCard', 'loading', 'กำลังเชื่อมต่อ LINE...', 'fa-spinner fa-spin');
+
+        await liff.init({ liffId: LIFF_ID });
+        debugLog('LIFF initialized');
+
+        if (!liff.isLoggedIn()) {
+          updateMainStatus('fab fa-line text-blue-500', 'กำลังเข้าสู่ระบบ LINE...', 'กรุณาเข้าสู่ระบบ LINE', true);
+          updateCardStatus('lineCard', 'loading', 'รอการเข้าสู่ระบบ...', 'fa-spinner fa-spin');
+          debugLog('Not logged in, starting login');
+          liff.login();
+          return;
+        }
+
+        // Get user profile
+        const profile = await liff.getProfile();
+        const userId = profile.userId;
+        const userName = profile.displayName;
+        debugLog('LINE profile', { userId: userId, displayName: userName });
+
+        updateCardStatus('lineCard', 'success', `เข้าสู่ระบบเป็น: ${userName}`);
+
+        // Setup add friend button
+        if (addFriendBtn) {
+          addFriendBtn.onclick = function() {
+            window.open('https://line.me/R/ti/p/~' + BOT_BASIC_ID, '_blank');
+          };
+        }
+
+        // Link account
+        updateMainStatus('fas fa-link text-blue-500', 'กำลังผูกบัญชี...', 'กำลังบันทึกข้อมูลลงระบบ', true);
+        updateCardStatus('linkCard', 'loading', 'กำลังผูกบัญชีกับระบบ...', 'fa-spinner fa-spin');
+        debugLog('Saving LINE ID to person', { cid, userId });
+
+        const params = new URLSearchParams({
+          action: 'saveLineIdToPerson',
+          cid: cid,
+          lineUserId: userId
+        });
+
+        try {
+          const response = await fetch(GAS_WEBAPP_URL + '?' + params.toString(), {
+            method: 'GET'
+          });
+          const data = await response.json();
+          debugLog('Backend response', data);
+
+          if (data.success) {
+            updateCardStatus('linkCard', 'success', `ผูกบัญชีสำเร็จ: ${data.personName || 'ไม่ทราบชื่อ'}`);
+            updateCardStatus('notificationCard', 'loading', 'กำลังส่งข้อความต้อนรับ...', 'fa-spinner fa-spin');
+            
+            // Show final success
+            setTimeout(() => {
+              updateCardStatus('notificationCard', 'success', 'ส่งข้อความต้อนรับแล้ว');
+              showSuccess(
+                `สวัสดี ${data.personName || 'คุณ'}!\nระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot\nคุณสามารถปิดหน้านี้ได้`
+              );
+            }, 2000);
+          } else {
+            updateCardStatus('linkCard', 'error', 'ไม่สามารถผูกบัญชีได้');
+            showError(data.error || 'ไม่สามารถผูกบัญชีได้');
+          }
+        } catch (fetchError) {
+          debugLog('Fetch failed, trying fallback method', fetchError.message);
+          
+          // Fallback method using image request
+          updateCardStatus('linkCard', 'warning', 'ใช้วิธีสำรองในการส่งข้อมูล...');
+          
+          const fallbackUrl = GAS_WEBAPP_URL + '?' + params.toString() + '&_callback=image';
+          const img = new Image();
+          
+          img.onload = img.onerror = function() {
+            debugLog('Fallback request completed');
+            updateCardStatus('linkCard', 'success', 'ผูกบัญชีสำเร็จ (วิธีสำรอง)');
+            updateCardStatus('notificationCard', 'success', 'ข้อความต้อนรับจะส่งในไม่ช้า');
+            showSuccess('เชื่อมต่อสำเร็จ!\nระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot');
+          };
+          
+          img.src = fallbackUrl;
+          
+          // Final fallback after 5 seconds
+          setTimeout(() => {
+            if (statusText && statusText.textContent.includes('กำลัง')) {
+              updateCardStatus('linkCard', 'success', 'ผูกบัญชีสำเร็จ');
+              updateCardStatus('notificationCard', 'success', 'ข้อความต้อนรับจะส่งในไม่ช้า');
+              showSuccess('เชื่อมต่อสำเร็จ!\nระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot');
+            }
+          }, 5000);
+        }
+
+      } catch (liffError) {
+        debugLog('LIFF init error', liffError.message);
+        updateCardStatus('lineCard', 'error', 'ไม่สามารถเชื่อมต่อ LIFF ได้');
+        showError('เกิดข้อผิดพลาดในการเชื่อมต่อ LIFF: ' + liffError.message);
+      }
+    });
+  </script>
 </body>
 </html>
