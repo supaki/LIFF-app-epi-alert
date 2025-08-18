@@ -168,7 +168,7 @@
 
     // Debug function
     function debugLog(message, data) {
-      // console.log('LIFF DEBUG:', message, data);
+      console.log('LIFF DEBUG:', message, data);
       const debugDiv = document.getElementById('debug-info');
       if (debugDiv) {
         debugDiv.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message} ${data ? JSON.stringify(data) : ''}</div>`;
@@ -194,7 +194,7 @@
       if (statusDetail) {
         statusDetail.textContent = detail;
       }
-      // console.log(`Status: ${text} ${detail ? '- ' + detail : ''}`);
+      console.log(`Status: ${text} ${detail ? '- ' + detail : ''}`);
     }
 
     function updateCardStatus(cardId, status, text, icon = null) {
@@ -280,6 +280,13 @@
       const urlParams = new URLSearchParams(window.location.search);
       let identifier = urlParams.get('cid') || urlParams.get('pid');
       let identifierType = urlParams.get('cid') ? 'cid' : (urlParams.get('pid') ? 'pid' : null);
+      
+      debugLog('Initial parameter check', {
+        cid: urlParams.get('cid'),
+        pid: urlParams.get('pid'),
+        identifier: identifier,
+        identifierType: identifierType
+      });
 
       if (!identifier && window.location.hash) {
         try {
@@ -347,7 +354,15 @@
         }
       }
 
+      debugLog('Final parameter result', {
+        identifier: identifier,
+        identifierType: identifierType,
+        urlSearch: window.location.search,
+        urlHash: window.location.hash
+      });
+
       if (!identifier) {
+        debugLog('ERROR: No identifier found');
         showError('ไม่พบข้อมูลระบุตัวตน (CID/PID)');
         updateCardStatus('cidCard', 'error', 'ไม่พบข้อมูลระบุตัวตน');
         return;
@@ -414,6 +429,13 @@
           lineUserId: userId
         });
 
+        debugLog('Sending parameters', {
+          action: 'saveLineIdToPerson',
+          [identifierType]: identifier,
+          lineUserId: userId,
+          url: GAS_WEBAPP_URL + '?' + params.toString()
+        });
+
         try {
           const response = await fetch(GAS_WEBAPP_URL + '?' + params.toString(), {
             method: 'GET'
@@ -456,7 +478,7 @@
           
           // Final fallback after 5 seconds
           setTimeout(() => {
-            if (statusText && statusText.textContent.includes('กำลัง')) {
+            if (statusText && statusText.textContent && statusText.textContent.includes('กำลัง')) {
               updateCardStatus('linkCard', 'success', 'ผูกบัญชีสำเร็จ');
               updateCardStatus('notificationCard', 'success', 'ข้อความต้อนรับจะส่งในไม่ช้า');
               showSuccess('เชื่อมต่อสำเร็จ!\nระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot');
