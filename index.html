@@ -168,7 +168,7 @@
 
     // Debug function
     function debugLog(message, data) {
-      console.log('LIFF DEBUG:', message, data);
+      // console.log('LIFF DEBUG:', message, data);
       const debugDiv = document.getElementById('debug-info');
       if (debugDiv) {
         debugDiv.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message} ${data ? JSON.stringify(data) : ''}</div>`;
@@ -194,7 +194,7 @@
       if (statusDetail) {
         statusDetail.textContent = detail;
       }
-      console.log(`Status: ${text} ${detail ? '- ' + detail : ''}`);
+      // console.log(`Status: ${text} ${detail ? '- ' + detail : ''}`);
     }
 
     function updateCardStatus(cardId, status, text, icon = null) {
@@ -258,8 +258,13 @@
     }
 
     // Validation function
-    function validateCid(cid) {
-      return typeof cid === 'string' && /^\d{13}$/.test(cid);
+    function validateIdentifier(identifier, type) {
+      if (type === 'cid') {
+        return typeof identifier === 'string' && /^\d{13}$/.test(identifier);
+      } else if (type === 'pid') {
+        return typeof identifier === 'string' && identifier.length > 0;
+      }
+      return false;
     }
 
     // Main application logic
@@ -271,92 +276,100 @@
       // Initialize
       updateMainStatus('fas fa-search text-blue-500', 'กำลังตรวจสอบข้อมูล...', 'กรุณารอสักครู่', true);
       
-      // Get CID from URL parameters (support multiple possible parameter names)
+      // Get identifier from URL parameters (CID or PID)
       const urlParams = new URLSearchParams(window.location.search);
-      let cid = urlParams.get('cid');
-      debugLog('cid from query', cid);
+      let identifier = urlParams.get('cid') || urlParams.get('pid');
+      let identifierType = urlParams.get('cid') ? 'cid' : (urlParams.get('pid') ? 'pid' : null);
 
-      if (!cid) {
-        // กรณีถูก redirect หลัง LINE Login จะมี state parameter
-        const state = urlParams.get('state');
-        debugLog('state param', state);
-        if (state && state.startsWith('cid-')) {
-          cid = state.replace('cid-', '');
-          debugLog('cid from state', cid);
+      if (!identifier && window.location.hash) {
+        try {
+          const hashString = window.location.hash.substring(1);
+          const hashParams = new URLSearchParams(hashString);
+          identifier = hashParams.get('cid') || hashParams.get('pid');
+          identifierType = hashParams.get('cid') ? 'cid' : (hashParams.get('pid') ? 'pid' : null);
+        } catch (e) {
+          // Error parsing hash fragment
         }
       }
 
-      if (!cid) {
-        // ตรวจสอบ liff.state parameter ที่อาจจะมี encoded URL
+      if (identifier) {
+        localStorage.setItem('pendingIdentifier', JSON.stringify({identifier, identifierType}));
+      }
+
+      if (!identifier) {
+        const state = urlParams.get('state');
+        if (state && (state.startsWith('cid-') || state.startsWith('pid-'))) {
+          if (state.startsWith('cid-')) {
+            identifier = state.replace('cid-', '');
+            identifierType = 'cid';
+          } else if (state.startsWith('pid-')) {
+            identifier = state.replace('pid-', '');
+            identifierType = 'pid';
+          }
+        }
+      }
+
+      if (!identifier) {
         const liffState = urlParams.get('liff.state');
-        debugLog('liff.state param', liffState);
         if (liffState) {
           try {
             const decodedState = decodeURIComponent(liffState);
-            debugLog('decoded liff.state', decodedState);
+            let stateParams;
             
-            // ตรวจสอบทั้ง query string (?) และ fragment (#)
             if (decodedState.startsWith('?')) {
-              const stateParams = new URLSearchParams(decodedState);
-              cid = stateParams.get('cid');
-              debugLog('cid from liff.state query', cid);
+              stateParams = new URLSearchParams(decodedState);
             } else if (decodedState.startsWith('#')) {
-              const fragmentParams = new URLSearchParams(decodedState.substring(1));
-              cid = fragmentParams.get('cid');
-              debugLog('cid from liff.state fragment', cid);
+              const hashString = decodedState.substring(1);
+              stateParams = new URLSearchParams(hashString);
+            } else {
+              stateParams = new URLSearchParams('?' + decodedState);
             }
+            
+            identifier = stateParams.get('cid') || stateParams.get('pid');
+            identifierType = stateParams.get('cid') ? 'cid' : (stateParams.get('pid') ? 'pid' : null);
           } catch (e) {
-            debugLog('Error decoding liff.state', e.message);
+            // Error decoding liff.state
           }
         }
       }
 
-      if (!cid) {
-        cid = urlParams.get('pid');
-        debugLog('cid from pid', cid);
-      }
-
-      if (!cid) {
-        // ตรวจสอบจาก URL fragment (สำหรับ redirect flow)
-        const fragment = window.location.hash;
-        debugLog('URL fragment', fragment);
-        if (fragment && fragment.startsWith('#')) {
-          const fragmentParams = new URLSearchParams(fragment.substring(1));
-          const fragmentCid = fragmentParams.get('cid');
-          debugLog('cid from fragment', fragmentCid);
-          if (fragmentCid) {
-            cid = fragmentCid;
-            debugLog('Using CID from URL fragment');
+      if (!identifier) {
+        const storedData = localStorage.getItem('pendingIdentifier');
+        if (storedData) {
+          try {
+            const parsed = JSON.parse(storedData);
+            identifier = parsed.identifier;
+            identifierType = parsed.identifierType;
+            localStorage.removeItem('pendingIdentifier');
+          } catch (e) {
+            // Error parsing stored identifier
           }
         }
       }
 
-      if (!cid) {
-        // ตรวจสอบจาก localStorage เป็นตัวเลือกสำรอง
-        const storedCid = localStorage.getItem('pendingCid');
-        debugLog('cid from localStorage', storedCid);
-        if (storedCid) {
-          cid = storedCid;
-          localStorage.removeItem('pendingCid');
-          debugLog('Using stored CID and removed from localStorage');
-        }
-      }
-
-      // Validate CID
-      if (!cid || !validateCid(cid)) {
-        showError('เลขบัตรประชาชน (CID) ไม่ถูกต้อง ต้องเป็นตัวเลข 13 หลัก');
-        updateCardStatus('cidCard', 'error', 'เลขบัตรประชาชนไม่ถูกต้อง');
-        debugLog('Invalid CID', cid);
+      if (!identifier) {
+        showError('ไม่พบข้อมูลระบุตัวตน (CID/PID)');
+        updateCardStatus('cidCard', 'error', 'ไม่พบข้อมูลระบุตัวตน');
         return;
       }
 
-      debugLog('Valid CID found', cid);
+      if (!validateIdentifier(identifier, identifierType)) {
+        const errorMsg = identifierType === 'cid' 
+          ? 'เลขบัตรประชาชน (CID) ไม่ถูกต้อง ต้องเป็นตัวเลข 13 หลัก'
+          : 'รหัสผู้ป่วย (PID) ไม่ถูกต้อง';
+        showError(errorMsg);
+        updateCardStatus('cidCard', 'error', 'ข้อมูลไม่ถูกต้อง');
+        return;
+      }
 
       // Show status cards
       showStatusCards();
       
-      // Update CID status
-      updateCardStatus('cidCard', 'success', `เลขบัตร: ${cid.substring(0, 4)}-${cid.substring(4, 9)}-${cid.substring(9)}`);
+      // Update identifier status
+      const statusText = identifierType === 'cid' 
+        ? `เลขบัตร: ${identifier.substring(0, 4)}-${identifier.substring(4, 9)}-${identifier.substring(9)}`
+        : `รหัสผู้ป่วย: ${identifier}`;
+      updateCardStatus('cidCard', 'success', statusText);
       
       // Wait a bit for better UX
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -395,11 +408,9 @@
         // Link account
         updateMainStatus('fas fa-link text-blue-500', 'กำลังผูกบัญชี...', 'กำลังบันทึกข้อมูลลงระบบ', true);
         updateCardStatus('linkCard', 'loading', 'กำลังผูกบัญชีกับระบบ...', 'fa-spinner fa-spin');
-        debugLog('Saving LINE ID to person', { cid, userId });
-
         const params = new URLSearchParams({
           action: 'saveLineIdToPerson',
-          cid: cid,
+          [identifierType]: identifier,
           lineUserId: userId
         });
 
