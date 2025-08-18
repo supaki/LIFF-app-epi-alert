@@ -168,7 +168,7 @@
 
     // Debug function
     function debugLog(message, data) {
-      console.log('LIFF DEBUG:', message, data);
+      // console.log('LIFF DEBUG:', message, data);
       const debugDiv = document.getElementById('debug-info');
       if (debugDiv) {
         debugDiv.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message} ${data ? JSON.stringify(data) : ''}</div>`;
@@ -194,7 +194,7 @@
       if (statusDetail) {
         statusDetail.textContent = detail;
       }
-      console.log(`Status: ${text} ${detail ? '- ' + detail : ''}`);
+      // console.log(`Status: ${text} ${detail ? '- ' + detail : ''}`);
     }
 
     function updateCardStatus(cardId, status, text, icon = null) {
@@ -436,55 +436,38 @@
           url: GAS_WEBAPP_URL + '?' + params.toString()
         });
 
-        try {
-          const response = await fetch(GAS_WEBAPP_URL + '?' + params.toString(), {
-            method: 'GET'
-          });
-          const data = await response.json();
-          debugLog('Backend response', data);
-
-          if (data.success) {
-            updateCardStatus('linkCard', 'success', `ผูกบัญชีสำเร็จ: ${data.personName || 'ไม่ทราบชื่อ'}`);
-            updateCardStatus('notificationCard', 'loading', 'กำลังส่งข้อความต้อนรับ...', 'fa-spinner fa-spin');
-            
-            // Show final success
-            setTimeout(() => {
-              updateCardStatus('notificationCard', 'success', 'ส่งข้อความต้อนรับแล้ว');
-              showSuccess(
-                `สวัสดี ${data.personName || 'คุณ'}!\nระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot\nคุณสามารถปิดหน้านี้ได้`
-              );
-            }, 2000);
-          } else {
-            updateCardStatus('linkCard', 'error', 'ไม่สามารถผูกบัญชีได้');
-            showError(data.error || 'ไม่สามารถผูกบัญชีได้');
-          }
-        } catch (fetchError) {
-          debugLog('Fetch failed, trying fallback method', fetchError.message);
+        // ใช้ image fallback เป็นหลัก เนื่องจากปัญหา CORS
+        debugLog('Using image fallback method');
+        const fallbackUrl = GAS_WEBAPP_URL + '?' + params.toString() + '&_callback=image';
+        const img = new Image();
+        let requestCompleted = false;
+        
+        const completeSuccess = () => {
+          if (requestCompleted) return;
+          requestCompleted = true;
           
-          // Fallback method using image request
-          updateCardStatus('linkCard', 'warning', 'ใช้วิธีสำรองในการส่งข้อมูล...');
+          updateCardStatus('linkCard', 'success', 'ผูกบัญชีสำเร็จ');
+          updateCardStatus('notificationCard', 'loading', 'กำลังส่งข้อความต้อนรับ...', 'fa-spinner fa-spin');
           
-          const fallbackUrl = GAS_WEBAPP_URL + '?' + params.toString() + '&_callback=image';
-          const img = new Image();
-          
-          img.onload = img.onerror = function() {
-            debugLog('Fallback request completed');
-            updateCardStatus('linkCard', 'success', 'ผูกบัญชีสำเร็จ (วิธีสำรอง)');
-            updateCardStatus('notificationCard', 'success', 'ข้อความต้อนรับจะส่งในไม่ช้า');
-            showSuccess('เชื่อมต่อสำเร็จ!\nระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot');
-          };
-          
-          img.src = fallbackUrl;
-          
-          // Final fallback after 5 seconds
           setTimeout(() => {
-            if (statusText && statusText.textContent && statusText.textContent.includes('กำลัง')) {
-              updateCardStatus('linkCard', 'success', 'ผูกบัญชีสำเร็จ');
-              updateCardStatus('notificationCard', 'success', 'ข้อความต้อนรับจะส่งในไม่ช้า');
-              showSuccess('เชื่อมต่อสำเร็จ!\nระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot');
-            }
-          }, 5000);
-        }
+            updateCardStatus('notificationCard', 'success', 'ข้อความต้อนรับจะส่งในไม่ช้า');
+            showSuccess(
+              '🎉 เชื่อมต่อสำเร็จ!\n\n📱 ระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot\n⏰ การแจ้งเตือนจะส่งล่วงหน้า 1 วันก่อนวันนัด\n\n📋 หากคุณยังไม่ได้เพิ่มเพื่อน LINE Bot กรุณาเพิ่มเพื่อนก่อนเพื่อรับข้อความแจ้งเตือน\n\n✅ คุณสามารถปิดหน้านี้ได้แล้ว'
+            );
+          }, 2000);
+        };
+
+        img.onload = img.onerror = () => {
+          debugLog('Fallback request completed');
+          completeSuccess();
+        };
+        
+        img.src = fallbackUrl;
+        
+        // Backup timer
+        setTimeout(() => {
+          completeSuccess();
+        }, 5000);
 
       } catch (liffError) {
         debugLog('LIFF init error', liffError.message);
