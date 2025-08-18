@@ -5,7 +5,7 @@ const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwPwiSMPSdXZ9Rqo
 const BOT_BASIC_ID = '@829aobqk'; // หรือดึงจาก config ถ้าต้องการ
 
 document.addEventListener('DOMContentLoaded', async function() {
-  console.log('=== LIFF App Started (v2025081407) ==='); // Version bump for cache busting
+  // Version bump for cache busting
   
   // New UI elements
   const statusIcon = document.getElementById('statusIcon');
@@ -15,15 +15,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   const addFriendBtn = document.getElementById('addFriendBtn');
   const resultDiv = document.getElementById('result');
   
-  // Debug UI elements
-  console.log('UI Elements Check:', {
-    statusIcon: !!statusIcon,
-    statusText: !!statusText,
-    statusDetail: !!statusDetail,
-    actionButtons: !!actionButtons,
-    addFriendBtn: !!addFriendBtn,
-    resultDiv: !!resultDiv
-  });
+  // Debug UI elements (removed console output)
   
   // Status management functions
   function updateStatus(step, icon, text, detail = '', isLoading = false) {
@@ -40,8 +32,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (statusDetail) {
       statusDetail.textContent = detail;
     }
-    
-    console.log(`Status: ${text} ${detail ? '- ' + detail : ''}`);
   }
   
   function updateStepIndicator(currentStep) {
@@ -100,116 +90,107 @@ document.addEventListener('DOMContentLoaded', async function() {
   // Initialize
   updateStatus(1, 'fas fa-search text-blue-500', 'กำลังตรวจสอบข้อมูล...', 'กรุณารอสักครู่', true);
 
-  // ดึง cid จาก query string, hash fragment หรือจาก state parameter
+  // ดึง cid หรือ pid จาก query string, hash fragment หรือจาก state parameter
   const urlParams = new URLSearchParams(window.location.search);
-  console.log('window.location.href:', window.location.href);
-  console.log('window.location.search:', window.location.search);
-  console.log('window.location.hash:', window.location.hash);
-  console.log('urlParams:', urlParams.toString());
-  let cid = urlParams.get('cid');
-  console.log('cid from query:', cid);
+  let identifier = urlParams.get('cid') || urlParams.get('pid');
+  let identifierType = urlParams.get('cid') ? 'cid' : (urlParams.get('pid') ? 'pid' : null);
   
   // ตรวจสอบ hash fragment ถ้าไม่เจอใน query parameters
-  if (!cid && window.location.hash) {
-    console.log('Checking hash fragment...');
+  if (!identifier && window.location.hash) {
     try {
       const hashString = window.location.hash.substring(1); // remove #
-      console.log('hash string (after removing #):', hashString);
       const hashParams = new URLSearchParams(hashString);
-      cid = hashParams.get('cid');
-      console.log('cid from hash:', cid);
+      identifier = hashParams.get('cid') || hashParams.get('pid');
+      identifierType = hashParams.get('cid') ? 'cid' : (hashParams.get('pid') ? 'pid' : null);
     } catch (e) {
-      console.log('Error parsing hash fragment:', e);
+      // Error parsing hash fragment
     }
   }
   
-  // Store CID in localStorage before LINE login if found
-  if (cid) {
-    console.log('Storing CID in localStorage:', cid);
-    localStorage.setItem('pendingCid', cid);
+  // Store identifier in localStorage before LINE login if found
+  if (identifier) {
+    localStorage.setItem('pendingIdentifier', JSON.stringify({identifier, identifierType}));
   }
-  if (!cid) {
+  if (!identifier) {
     // กรณีถูก redirect หลัง LINE Login จะมี state parameter
     const state = urlParams.get('state');
-    console.log('state param:', state);
-    if (state && state.startsWith('cid-')) {
-      cid = state.replace('cid-', '');
-      console.log('cid from state:', cid);
-    }
-  }
-  console.log('Checking for liff.state...');
-  if (!cid) {
-    // ตรวจสอบ liff.state parameter ที่อาจจะมี encoded URL
-    const liffState = urlParams.get('liff.state');
-    console.log('liff.state param:', liffState);
-    if (liffState) {
-      try {
-        // decode ค่า liff.state
-        const decodedState = decodeURIComponent(liffState);
-        console.log('decoded liff.state:', decodedState);
-        console.log('decodedState type:', typeof decodedState);
-        console.log('decodedState length:', decodedState.length);
-        console.log('decodedState startsWith #:', decodedState.startsWith('#'));
-        
-        // ตรวจสอบว่า decoded state เป็น query string หรือ hash fragment
-        if (decodedState.startsWith('?')) {
-          console.log('Processing as query string');
-          const stateParams = new URLSearchParams(decodedState);
-          cid = stateParams.get('cid');
-          console.log('cid from liff.state (query):', cid);
-        } else if (decodedState.startsWith('#')) {
-          console.log('Processing as hash fragment');
-          // สำหรับ hash fragment เช่น #cid=3800600588871
-          const hashString = decodedState.substring(1);
-          console.log('hashString after removing #:', hashString);
-          const hashParams = new URLSearchParams(hashString);
-          cid = hashParams.get('cid');
-          console.log('cid from liff.state (hash):', cid);
-        } else {
-          console.log('Processing as plain string');
-          // ลองแปลง string ธรรมดาเป็น URLSearchParams
-          const stateParams = new URLSearchParams('?' + decodedState);
-          cid = stateParams.get('cid');
-          console.log('cid from liff.state (plain):', cid);
-        }
-      } catch (e) {
-        console.log('Error decoding liff.state:', e);
+    if (state && (state.startsWith('cid-') || state.startsWith('pid-'))) {
+      if (state.startsWith('cid-')) {
+        identifier = state.replace('cid-', '');
+        identifierType = 'cid';
+      } else if (state.startsWith('pid-')) {
+        identifier = state.replace('pid-', '');
+        identifierType = 'pid';
       }
     }
   }
-  if (!cid) {
-    cid = urlParams.get('pid');
-    console.log('cid from pid:', cid);
-  }
-  if (!cid) {
-    // ตรวจสอบจาก localStorage (สำหรับ redirect flow)
-    const storedCid = localStorage.getItem('pendingCid');
-    console.log('cid from localStorage:', storedCid);
-    if (storedCid) {
-      cid = storedCid;
-      // ลบออกจาก localStorage หลังใช้แล้ว
-      localStorage.removeItem('pendingCid');
-      console.log('Using stored CID and removed from localStorage');
+  if (!identifier) {
+    // ตรวจสอบ liff.state parameter ที่อาจจะมี encoded URL
+    const liffState = urlParams.get('liff.state');
+    if (liffState) {
+      try {
+        const decodedState = decodeURIComponent(liffState);
+        let stateParams;
+        
+        if (decodedState.startsWith('?')) {
+          stateParams = new URLSearchParams(decodedState);
+        } else if (decodedState.startsWith('#')) {
+          const hashString = decodedState.substring(1);
+          stateParams = new URLSearchParams(hashString);
+        } else {
+          stateParams = new URLSearchParams('?' + decodedState);
+        }
+        
+        identifier = stateParams.get('cid') || stateParams.get('pid');
+        identifierType = stateParams.get('cid') ? 'cid' : (stateParams.get('pid') ? 'pid' : null);
+      } catch (e) {
+        // Error decoding liff.state
+      }
     }
   }
-  if (!cid) {
-    showError('ไม่พบเลขบัตรประชาชน (cid/pid)');
-    console.log('window.location.search:', window.location.search);
-    console.log('cid:', cid);
+  if (!identifier) {
+    // ตรวจสอบจาก localStorage (สำหรับ redirect flow)
+    const storedData = localStorage.getItem('pendingIdentifier');
+    if (storedData) {
+      try {
+        const parsed = JSON.parse(storedData);
+        identifier = parsed.identifier;
+        identifierType = parsed.identifierType;
+        localStorage.removeItem('pendingIdentifier');
+      } catch (e) {
+        // Error parsing stored identifier
+      }
+    }
+  }
+  
+  if (!identifier) {
+    showError('ไม่พบข้อมูลระบุตัวตน (CID/PID)');
     return;
   }
-  // เพิ่มฟังก์ชันตรวจสอบ cid
-  function validateCid(cid) {
-    return typeof cid === 'string' && /^\d{13}$/.test(cid);
+  
+  // เพิ่มฟังก์ชันตรวจสอบ identifier
+  function validateIdentifier(identifier, type) {
+    if (type === 'cid') {
+      return typeof identifier === 'string' && /^\d{13}$/.test(identifier);
+    } else if (type === 'pid') {
+      return typeof identifier === 'string' && identifier.length > 0;
+    }
+    return false;
   }
-  if (!cid || !validateCid(cid)) {
-    showError('เลขบัตรประชาชน (cid) ไม่ถูกต้อง ต้องเป็นตัวเลข 13 หลัก');
-    console.log('(cid) ไม่ถูกต้อง:', cid);
+  
+  if (!validateIdentifier(identifier, identifierType)) {
+    const errorMsg = identifierType === 'cid' 
+      ? 'เลขบัตรประชาชน (CID) ไม่ถูกต้อง ต้องเป็นตัวเลข 13 หลัก'
+      : 'รหัสผู้ป่วย (PID) ไม่ถูกต้อง';
+    showError(errorMsg);
     return;
   }
 
-  // CID validation passed, proceed to LIFF login
-  updateStatus(1, 'fas fa-check text-green-500', 'ตรวจสอบข้อมูลสำเร็จ', `เลขบัตรประชาชน: ${cid}`);
+  // Identifier validation passed, proceed to LIFF login
+  const displayText = identifierType === 'cid' 
+    ? `เลขบัตรประชาชน: ${identifier}` 
+    : `รหัสผู้ป่วย: ${identifier}`;
+  updateStatus(1, 'fas fa-check text-green-500', 'ตรวจสอบข้อมูลสำเร็จ', displayText);
   
   // Delay for better UX
   setTimeout(async () => {
@@ -239,7 +220,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       
       const params = new URLSearchParams({
         action: 'saveLineIdToPerson',
-        cid: cid,
+        [identifierType]: identifier,
         lineUserId: userId
       });
       
@@ -267,7 +248,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
       })
       .catch(err => {
-        console.error('Fetch failed, trying alternative method:', err);
+        // Fetch failed, trying alternative method
         
         // Fallback 1: ใช้ Image request (bypass CORS)
         updateStatus(3, 'fas fa-link text-yellow-500', 'กำลังผูกบัญชี (วิธีทางเลือก)...', 'ใช้วิธีสำรองในการส่งข้อมูล', true);
@@ -276,7 +257,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         // สร้าง invisible image เพื่อทริกเกอร์ GET request
         const img = new Image();
         img.onload = function() {
-          console.log('Image fallback request completed');
+          // Image fallback request completed
           showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', false);
           setTimeout(() => {
             updateStatus(3, 'fas fa-check-circle text-green-500', 'เชื่อมต่อสำเร็จ!', 
@@ -285,7 +266,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         };
         
         img.onerror = function() {
-          console.log('Image fallback request sent (may still work)');
+          // Image fallback request sent (may still work)
           showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', false);
           statusDetail.textContent = 'หากไม่ได้รับข้อความต้อนรับ กรุณาติดต่อเจ้าหน้าที่';
           setTimeout(() => {
