@@ -5,9 +5,7 @@ const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwPwiSMPSdXZ9Rqo
 const BOT_BASIC_ID = '@829aobqk'; // หรือดึงจาก config ถ้าต้องการ
 
 document.addEventListener('DOMContentLoaded', async function() {
-  console.log('=== LIFF App Started (v2025081912) ===', window.location.href); // Version bump for cache busting
-  console.log('LIFF DEBUG: URL', window.location.href);
-  console.log('LIFF DEBUG: Search params', window.location.search);
+  console.log('=== LIFF App Started (v2025081407) ==='); // Version bump for cache busting
   
   // New UI elements
   const statusIcon = document.getElementById('statusIcon');
@@ -133,7 +131,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   if (!cid) {
     // กรณีถูก redirect หลัง LINE Login จะมี state parameter
     const state = urlParams.get('state');
-    console.log('LIFF DEBUG: state param', state);
+    console.log('state param:', state);
     if (state && state.startsWith('cid-')) {
       cid = state.replace('cid-', '');
       console.log('cid from state:', cid);
@@ -143,7 +141,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   if (!cid) {
     // ตรวจสอบ liff.state parameter ที่อาจจะมี encoded URL
     const liffState = urlParams.get('liff.state');
-    console.log('LIFF DEBUG: liff.state param', liffState);
+    console.log('liff.state param:', liffState);
     if (liffState) {
       try {
         // decode ค่า liff.state
@@ -156,44 +154,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         // ตรวจสอบว่า decoded state เป็น query string หรือ hash fragment
         if (decodedState.startsWith('?')) {
           console.log('Processing as query string');
-          
-          // ตรวจสอบกรณี nested liff.state เช่น "?liff.state=cid=1809903415444"
-          console.log('LIFF DEBUG: Checking for nested pattern in:', decodedState);
-          console.log('LIFF DEBUG: Contains liff.state=cid=?', decodedState.includes('liff.state=cid='));
-          
-          if (decodedState.includes('liff.state=cid=')) {
-            console.log('LIFF DEBUG: Found nested liff.state with cid');
-            const match = decodedState.match(/liff\.state=cid=([^&]+)/);
-            console.log('LIFF DEBUG: Regex match result:', match);
-            if (match && match[1]) {
-              cid = match[1];
-              console.log('LIFF DEBUG: Extracted CID from nested liff.state:', cid);
-            }
-          } else {
-            // ลองดูว่ามี liff.state= ไหมแล้วดึง cid จากข้างหลัง
-            if (decodedState.includes('liff.state=')) {
-              console.log('LIFF DEBUG: Found liff.state parameter, extracting content');
-              const liffStateMatch = decodedState.match(/liff\.state=([^&]*)/);
-              console.log('LIFF DEBUG: liff.state content match:', liffStateMatch);
-              if (liffStateMatch && liffStateMatch[1]) {
-                const innerContent = liffStateMatch[1];
-                console.log('LIFF DEBUG: Inner content:', innerContent);
-                // ลองดึง cid จาก inner content
-                if (innerContent.includes('cid=')) {
-                  const cidMatch = innerContent.match(/cid=([^&]*)/);
-                  console.log('LIFF DEBUG: CID match in inner content:', cidMatch);
-                  if (cidMatch && cidMatch[1]) {
-                    cid = cidMatch[1];
-                    console.log('LIFF DEBUG: Found CID in inner content:', cid);
-                  }
-                }
-              }
-            } else {
-              const stateParams = new URLSearchParams(decodedState);
-              cid = stateParams.get('cid');
-              console.log('cid from liff.state (query):', cid);
-            }
-          }
+          const stateParams = new URLSearchParams(decodedState);
+          cid = stateParams.get('cid');
+          console.log('cid from liff.state (query):', cid);
         } else if (decodedState.startsWith('#')) {
           console.log('Processing as hash fragment');
           // สำหรับ hash fragment เช่น #cid=3800600588871
@@ -209,17 +172,6 @@ document.addEventListener('DOMContentLoaded', async function() {
           cid = stateParams.get('cid');
           console.log('cid from liff.state (plain):', cid);
         }
-        
-        // Fallback: ลองหา CID ด้วยวิธีง่ายๆ ถ้ายังไม่ได้
-        if (!cid && decodedState.includes('cid=')) {
-          console.log('LIFF DEBUG: Fallback - trying direct CID extraction');
-          const match = decodedState.match(/cid=([0-9]{13})/);
-          console.log('LIFF DEBUG: Direct CID match:', match);
-          if (match && match[1]) {
-            cid = match[1];
-            console.log('LIFF DEBUG: Extracted CID with fallback method:', cid);
-          }
-        }
       } catch (e) {
         console.log('Error decoding liff.state:', e);
       }
@@ -232,7 +184,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   if (!cid) {
     // ตรวจสอบจาก localStorage (สำหรับ redirect flow)
     const storedCid = localStorage.getItem('pendingCid');
-    console.log('LIFF DEBUG: cid from localStorage', storedCid);
+    console.log('cid from localStorage:', storedCid);
     if (storedCid) {
       cid = storedCid;
       // ลบออกจาก localStorage หลังใช้แล้ว
@@ -240,38 +192,19 @@ document.addEventListener('DOMContentLoaded', async function() {
       console.log('Using stored CID and removed from localStorage');
     }
   }
-  console.log('LIFF DEBUG: URL fragment', window.location.hash);
-  console.log('LIFF DEBUG: Final CID result:', cid);
-  
-  // เพิ่ม fallback method สำหรับกรณี nested liff.state
-  if (!cid) {
-    console.log('LIFF DEBUG: No CID found, trying fallback extraction from full URL');
-    const fullUrl = window.location.href;
-    console.log('LIFF DEBUG: Full URL for fallback:', fullUrl);
-    
-    // ลองหา pattern cid=ตัวเลข13หลัก ใน URL โดยตรง
-    const directMatch = fullUrl.match(/cid[=%]([0-9]{13})/);
-    console.log('LIFF DEBUG: Direct URL match:', directMatch);
-    if (directMatch && directMatch[1]) {
-      cid = directMatch[1];
-      console.log('LIFF DEBUG: Found CID with direct URL extraction:', cid);
-    }
-  }
-  
   if (!cid) {
     showError('ไม่พบเลขบัตรประชาชน (cid/pid)');
-    console.log('LIFF DEBUG: No CID found. URL:', window.location.href);
+    console.log('window.location.search:', window.location.search);
+    console.log('cid:', cid);
     return;
   }
   // เพิ่มฟังก์ชันตรวจสอบ cid
   function validateCid(cid) {
     return typeof cid === 'string' && /^\d{13}$/.test(cid);
   }
-  
   if (!cid || !validateCid(cid)) {
-    showError('เลขบัตรประชาชน (CID) ไม่ถูกต้อง ต้องเป็นตัวเลข 13 หลัก');
-    console.log('LIFF DEBUG: Invalid CID', cid);
-    console.log('LIFF DEBUG: Full URL for debugging:', window.location.href);
+    showError('เลขบัตรประชาชน (cid) ไม่ถูกต้อง ต้องเป็นตัวเลข 13 หลัก');
+    console.log('(cid) ไม่ถูกต้อง:', cid);
     return;
   }
 
@@ -316,31 +249,19 @@ document.addEventListener('DOMContentLoaded', async function() {
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', true); // แสดงปุ่ม
+          showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', false); // ไม่แสดงปุ่ม
           // Show user name if available
           if (data.personName) {
-            statusDetail.textContent = `สวัสดี ${data.personName}`;
+            statusDetail.textContent = `สวัสดี ${data.personName} - ระบบจะส่งข้อความต้อนรับให้คุณ`;
           } else {
-            statusDetail.textContent = 'ผูกบัญชีเรียบร้อยแล้ว';
+            statusDetail.textContent = 'ระบบจะส่งข้อความต้อนรับให้คุณผ่าน LINE Bot';
           }
           
-          // แสดงปุ่มเพิ่มเพื่อน LINE Bot
-          if (actionButtons && addFriendBtn) {
-            actionButtons.classList.remove('hidden');
-            addFriendBtn.innerHTML = `
-              <i class="fab fa-line mr-2"></i>
-              เพิ่มเพื่อน LINE Bot เพื่อรับการแจ้งเตือน
-            `;
-            addFriendBtn.onclick = function() {
-              window.open('https://line.me/R/ti/p/' + BOT_BASIC_ID, '_blank');
-            };
-          }
-          
-          // แสดงสถานะการเชื่อมต่อสมบูรณ์ หลังเพิ่มเพื่อน
+          // แสดงสถานะการเชื่อมต่อสมบูรณ์
           setTimeout(() => {
             updateStatus(3, 'fas fa-check-circle text-green-500', 'เชื่อมต่อสำเร็จ!', 
-              'กรุณาเพิ่มเพื่อน LINE Bot ด้านล่าง เพื่อรับการแจ้งเตือนการนัดฉีดวัคซีน');
-          }, 1000);
+              'ระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot\nคุณสามารถปิดหน้านี้ได้');
+          }, 2000);
         } else {
           showError(data.error || 'ไม่สามารถผูกบัญชีได้');
         }
@@ -356,47 +277,21 @@ document.addEventListener('DOMContentLoaded', async function() {
         const img = new Image();
         img.onload = function() {
           console.log('Image fallback request completed');
-          showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', true);
-          
-          // แสดงปุ่มเพิ่มเพื่อน LINE Bot
-          if (actionButtons && addFriendBtn) {
-            actionButtons.classList.remove('hidden');
-            addFriendBtn.innerHTML = `
-              <i class="fab fa-line mr-2"></i>
-              เพิ่มเพื่อน LINE Bot เพื่อรับการแจ้งเตือน
-            `;
-            addFriendBtn.onclick = function() {
-              window.open('https://line.me/R/ti/p/' + BOT_BASIC_ID, '_blank');
-            };
-          }
-          
+          showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', false);
           setTimeout(() => {
             updateStatus(3, 'fas fa-check-circle text-green-500', 'เชื่อมต่อสำเร็จ!', 
-              'กรุณาเพิ่มเพื่อน LINE Bot ด้านล่าง เพื่อรับการแจ้งเตือนการนัดฉีดวัคซีน');
-          }, 1000);
+              'ระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot\nคุณสามารถปิดหน้านี้ได้');
+          }, 2000);
         };
         
         img.onerror = function() {
           console.log('Image fallback request sent (may still work)');
-          showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', true);
-          
-          // แสดงปุ่มเพิ่มเพื่อน LINE Bot
-          if (actionButtons && addFriendBtn) {
-            actionButtons.classList.remove('hidden');
-            addFriendBtn.innerHTML = `
-              <i class="fab fa-line mr-2"></i>
-              เพิ่มเพื่อน LINE Bot เพื่อรับการแจ้งเตือน
-            `;
-            addFriendBtn.onclick = function() {
-              window.open('https://line.me/R/ti/p/' + BOT_BASIC_ID, '_blank');
-            };
-          }
-          
+          showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', false);
           statusDetail.textContent = 'หากไม่ได้รับข้อความต้อนรับ กรุณาติดต่อเจ้าหน้าที่';
           setTimeout(() => {
             updateStatus(3, 'fas fa-check-circle text-green-500', 'เชื่อมต่อสำเร็จ!', 
-              'กรุณาเพิ่มเพื่อน LINE Bot ด้านล่าง เพื่อรับการแจ้งเตือนการนัดฉีดวัคซีน');
-          }, 1000);
+              'ระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot\nคุณสามารถปิดหน้านี้ได้');
+          }, 2000);
         };
         
         // Trigger request
@@ -405,25 +300,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Fallback 2: หากไม่สำเร็จใน 5 วินาที ให้แสดงผลลัพธ์
         setTimeout(() => {
           if (statusText && statusText.textContent.includes('กำลังผูกบัญชี')) {
-            showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', true);
-            
-            // แสดงปุ่มเพิ่มเพื่อน LINE Bot
-            if (actionButtons && addFriendBtn) {
-              actionButtons.classList.remove('hidden');
-              addFriendBtn.innerHTML = `
-                <i class="fab fa-line mr-2"></i>
-                เพิ่มเพื่อน LINE Bot เพื่อรับการแจ้งเตือน
-              `;
-              addFriendBtn.onclick = function() {
-                window.open('https://line.me/R/ti/p/' + BOT_BASIC_ID, '_blank');
-              };
-            }
-            
+            showSuccess('ผูกบัญชี LINE กับระบบสำเร็จ!', false);
             statusDetail.textContent = 'ระบบอาจใช้เวลาสักครู่ในการอัพเดท';
             setTimeout(() => {
               updateStatus(3, 'fas fa-check-circle text-green-500', 'เชื่อมต่อสำเร็จ!', 
-                'กรุณาเพิ่มเพื่อน LINE Bot ด้านล่าง เพื่อรับการแจ้งเตือนการนัดฉีดวัคซีน');
-            }, 1000);
+                'ระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot\nคุณสามารถปิดหน้านี้ได้');
+            }, 2000);
           }
         }, 5000);
       });
