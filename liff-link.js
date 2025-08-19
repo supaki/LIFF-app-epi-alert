@@ -5,7 +5,7 @@ const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwPwiSMPSdXZ9Rqo
 const BOT_BASIC_ID = '@829aobqk'; // หรือดึงจาก config ถ้าต้องการ
 
 document.addEventListener('DOMContentLoaded', async function() {
-  console.log('=== LIFF App Started (Main Status Page) ===', window.location.href);
+  console.log('=== LIFF App Started (v2025081912) ===', window.location.href); // Version bump for cache busting
   console.log('LIFF DEBUG: URL', window.location.href);
   console.log('LIFF DEBUG: Search params', window.location.search);
   
@@ -208,6 +208,17 @@ document.addEventListener('DOMContentLoaded', async function() {
           const stateParams = new URLSearchParams('?' + decodedState);
           cid = stateParams.get('cid');
           console.log('cid from liff.state (plain):', cid);
+        }
+        
+        // Fallback: ลองหา CID ด้วยวิธีง่ายๆ ถ้ายังไม่ได้
+        if (!cid && decodedState.includes('cid=')) {
+          console.log('LIFF DEBUG: Fallback - trying direct CID extraction');
+          const match = decodedState.match(/cid=([0-9]{13})/);
+          console.log('LIFF DEBUG: Direct CID match:', match);
+          if (match && match[1]) {
+            cid = match[1];
+            console.log('LIFF DEBUG: Extracted CID with fallback method:', cid);
+          }
         }
       } catch (e) {
         console.log('Error decoding liff.state:', e);
