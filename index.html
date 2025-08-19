@@ -262,9 +262,10 @@
       return typeof cid === 'string' && /^\d{13}$/.test(cid);
     }
 
+    
     // Main application logic
     document.addEventListener('DOMContentLoaded', async function() {
-      debugLog('LIFF App Started (v2025081916) - Main Status Page');
+      debugLog('LIFF App Started (v2025081917) - Main Status Page');
       debugLog('URL', window.location.href);
       debugLog('Search params', window.location.search);
       
@@ -395,13 +396,30 @@
           }
           
           // Use proper redirect URL format  
-          const redirectUrl = new URL(window.location.origin + window.location.pathname);
-          redirectUrl.searchParams.set('cid', cid);
-          debugLog('Login redirect URL', redirectUrl.href);
+          const baseUrl = window.location.origin + window.location.pathname;
+          debugLog('Base URL for redirect', baseUrl);
           
-          liff.login({
-            redirectUri: redirectUrl.href
-          });
+          const redirectUrl = new URL(baseUrl);
+          debugLog('URL object created', redirectUrl.href);
+          
+          redirectUrl.searchParams.set('cid', cid);
+          debugLog('After adding CID param', redirectUrl.href);
+          debugLog('Final search params', redirectUrl.search);
+          
+          // Additional validation
+          if (!redirectUrl.href.includes('?cid=')) {
+            debugLog('ERROR: Redirect URL missing query parameter, trying fallback');
+            const fallbackUrl = baseUrl + (baseUrl.endsWith('/') ? '' : '/') + '?cid=' + cid;
+            debugLog('Fallback URL', fallbackUrl);
+            
+            liff.login({
+              redirectUri: fallbackUrl
+            });
+          } else {
+            liff.login({
+              redirectUri: redirectUrl.href
+            });
+          }
           return;
         }
 
