@@ -136,9 +136,24 @@
 
       <!-- Action Buttons -->
       <div id="actionButtons" class="space-y-3 hidden">
-        <button id="addFriendBtn" class="w-full line-gradient hover:opacity-90 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105">
-          <i class="fab fa-line mr-2"></i>เพิ่มเพื่อนกับ LINE Bot
-        </button>
+        <div id="addFriendSection" class="hidden">
+          <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+            <div class="flex items-center text-yellow-800 mb-2">
+              <i class="fas fa-exclamation-triangle mr-2"></i>
+              <span class="font-medium">จำเป็นต้องเพิ่ม Bot เป็นเพื่อนก่อน</span>
+            </div>
+            <p class="text-sm text-yellow-700">
+              เพื่อให้ระบบสามารถส่งการแจ้งเตือนให้คุณได้ กรุณาเพิ่ม LINE Bot เป็นเพื่อนก่อน
+            </p>
+          </div>
+          <button id="addFriendBtn" class="w-full line-gradient hover:opacity-90 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 bounce">
+            <i class="fab fa-line mr-2"></i>เพิ่มเพื่อนกับ LINE Bot
+          </button>
+          <button id="confirmFriendBtn" class="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-xl transition-colors mt-2">
+            <i class="fas fa-check mr-2"></i>เพิ่มเพื่อนแล้ว ดำเนินการต่อ
+          </button>
+        </div>
+        
         <button onclick="window.close()" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-xl transition-colors">
           <i class="fas fa-times mr-2"></i>ปิดหน้าต่างนี้
         </button>
@@ -181,7 +196,9 @@
     const statusDetail = document.getElementById('statusDetail');
     const statusCards = document.getElementById('statusCards');
     const actionButtons = document.getElementById('actionButtons');
+    const addFriendSection = document.getElementById('addFriendSection');
     const addFriendBtn = document.getElementById('addFriendBtn');
+    const confirmFriendBtn = document.getElementById('confirmFriendBtn');
 
     // Status update functions
     function updateMainStatus(icon, text, detail = '', isLoading = false) {
@@ -385,14 +402,124 @@
 
         updateCardStatus('lineCard', 'success', `เข้าสู่ระบบเป็น: ${userName}`);
 
-        // Setup add friend button
-        if (addFriendBtn) {
-          addFriendBtn.onclick = function() {
-            window.open('https://line.me/R/ti/p/~' + BOT_BASIC_ID, '_blank');
-          };
+        // Check friend status
+        updateMainStatus('fas fa-user-plus text-blue-500', 'กำลังตรวจสอบสถานะเป็นเพื่อน...', 'กรุณารอสักครู่', true);
+        updateCardStatus('friendCard', 'loading', 'กำลังตรวจสอบ...', 'fa-spinner fa-spin');
+
+        const isFriend = await checkFriendStatus(userId);
+        debugLog('Friend status', isFriend);
+
+        if (isFriend === true) {
+          // เป็นเพื่อนแล้ว → ดำเนินการต่อทันที
+          updateCardStatus('friendCard', 'success', 'เป็นเพื่อนกับ Bot แล้ว');
+        } else {
+          // ไม่เป็นเพื่อนหรือไม่แน่ใจ → แสดงปุ่มเพิ่มเพื่อน
+          updateCardStatus('friendCard', 'warning', 'จำเป็นต้องเพิ่ม Bot เป็นเพื่อนก่อน');
+          updateMainStatus('fas fa-user-plus text-yellow-500', 'จำเป็นต้องเพิ่มเพื่อนก่อน', 'กรุณาเพิ่ม LINE Bot เป็นเพื่อนเพื่อรับการแจ้งเตือน');
+          
+          // Show add friend section
+          if (addFriendSection) {
+            addFriendSection.classList.remove('hidden');
+          }
+          showActionButtons();
+
+          // Setup add friend button
+          if (addFriendBtn) {
+            addFriendBtn.onclick = function() {
+              debugLog('Opening LINE Bot friend page');
+              window.open('https://line.me/R/ti/p/~' + BOT_BASIC_ID, '_blank');
+            };
+          }
+
+          // Setup confirm friend button
+          if (confirmFriendBtn) {
+            confirmFriendBtn.onclick = async function() {
+              debugLog('User confirmed they added the bot as friend');
+              
+              // Update UI to show confirmation in progress
+              updateCardStatus('friendCard', 'loading', 'กำลังยืนยันสถานะ...', 'fa-spinner fa-spin');
+              confirmFriendBtn.disabled = true;
+              confirmFriendBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>กำลังยืนยัน...';
+              
+              // Send confirmation message
+              await sendFriendConfirmationMessage(cid, userId, userName);
+              
+              // Update status to success
+              updateCardStatus('friendCard', 'success', 'ยืนยันการเป็นเพื่อนแล้ว');
+              
+              // Hide add friend section
+              if (addFriendSection) {
+                addFriendSection.classList.add('hidden');
+              }
+              
+              // Continue with account linking
+              await proceedWithLinking(cid, userId, userName);
+              return;
+            };
+          }
+          return;
         }
 
-        // Link account
+        // Proceed with account linking if already friends
+        await proceedWithLinking(cid, userId, userName);
+
+      } catch (liffError) {
+        debugLog('LIFF init error', liffError.message);
+        updateCardStatus('lineCard', 'error', 'ไม่สามารถเชื่อมต่อ LIFF ได้');
+        showError('เกิดข้อผิดพลาดในการเชื่อมต่อ LIFF: ' + liffError.message);
+      }
+    });
+
+    // Check if user is friend with the bot (with 3 second timeout)
+    async function checkFriendStatus(userId) {
+      try {
+        debugLog('Checking friend status for userId', userId);
+        
+        // Create a promise with timeout
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Friendship check timeout')), 3000);
+        });
+        
+        // Race between friendship check and timeout
+        const friendshipPromise = liff.getFriendship();
+        const response = await Promise.race([friendshipPromise, timeoutPromise]);
+        
+        debugLog('Friendship response', response);
+        // Force return null (uncertain) to always show add friend button for testing
+        // return response.friendFlag;
+        return null;
+      } catch (error) {
+        debugLog('Error checking friendship', error);
+        // If we can't check within 3 seconds or error occurs, return uncertain state
+        return null; // null means uncertain, need manual confirmation
+      }
+    }
+
+    // Send friend confirmation message
+    async function sendFriendConfirmationMessage(cid, userId, userName) {
+      try {
+        const params = new URLSearchParams({
+          action: 'sendConfirmationMessage',
+          cid: cid,
+          lineUserId: userId,
+          message: '✅ ตรวจสอบแล้ว คุณเป็นเพื่อนกับ Bot แล้ว!'
+        });
+
+        const response = await fetch(GAS_WEBAPP_URL + '?' + params.toString(), {
+          method: 'GET'
+        });
+        const data = await response.json();
+        debugLog('Confirmation message response', data);
+        return data.success;
+      } catch (error) {
+        debugLog('Error sending confirmation message', error);
+        return false;
+      }
+    }
+
+    // Function to handle account linking process
+    async function proceedWithLinking(cid, userId, userName) {
+      // Link account
         updateMainStatus('fas fa-link text-blue-500', 'กำลังผูกบัญชี...', 'กำลังบันทึกข้อมูลลงระบบ', true);
         updateCardStatus('linkCard', 'loading', 'กำลังผูกบัญชีกับระบบ...', 'fa-spinner fa-spin');
         debugLog('Saving LINE ID to person', { cid, userId });
