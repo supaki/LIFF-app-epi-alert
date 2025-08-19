@@ -206,9 +206,30 @@ document.addEventListener('DOMContentLoaded', async function() {
         // ตรวจสอบว่า decoded state เป็น query string หรือ hash fragment (backward compatibility)
         if (!cid && decodedState.startsWith('?')) {
           console.log('Processing as query string');
-          const stateParams = new URLSearchParams(decodedState);
-          cid = String(stateParams.get('cid') || '').trim();
-          console.log('cid from liff.state (query):', cid);
+          
+          // ตรวจสอบกรณี nested liff.state เช่น "?liff.state=cid=1809903415444"
+          if (decodedState.includes('liff.state=')) {
+            console.log('LIFF DEBUG: Detected nested liff.state, extracting inner content');
+            const nestedMatch = decodedState.match(/liff\.state=(.+)/);
+            if (nestedMatch && nestedMatch[1]) {
+              const innerState = nestedMatch[1];
+              console.log('LIFF DEBUG: Inner state content:', innerState);
+              
+              // ลองแยก cid จาก inner state
+              if (innerState.includes('cid=')) {
+                const cidMatch = innerState.match(/cid=([^&]+)/);
+                if (cidMatch && cidMatch[1]) {
+                  cid = String(cidMatch[1]).trim();
+                  console.log('LIFF DEBUG: CID from nested liff.state:', cid);
+                }
+              }
+            }
+          } else {
+            // กรณีปกติ
+            const stateParams = new URLSearchParams(decodedState);
+            cid = String(stateParams.get('cid') || '').trim();
+            console.log('cid from liff.state (query):', cid);
+          }
         } else if (!cid && decodedState.startsWith('#')) {
           console.log('Processing as hash fragment');
           // สำหรับ hash fragment เช่น #cid=3800600588871
