@@ -264,7 +264,7 @@
 
     // Main application logic
     document.addEventListener('DOMContentLoaded', async function() {
-      debugLog('LIFF App Started (v2025081913) - Main Status Page');
+      debugLog('LIFF App Started (v2025081914) - Main Status Page');
       debugLog('URL', window.location.href);
       debugLog('Search params', window.location.search);
       
@@ -348,8 +348,8 @@
         const fullUrl = window.location.href;
         debugLog('Full URL for fallback', fullUrl);
         
-        // ลองหา pattern cid=ตัวเลข13หลัก ใน URL โดยตรง
-        const directMatch = fullUrl.match(/cid[=%]([0-9]{13})/);
+        // ลองหา pattern cid=ตัวเลข13หลัก ใน URL โดยตรง (รองรับ URL encoding)
+        const directMatch = fullUrl.match(/cid(?:%3D|%253D|=)([0-9]{13})/);
         debugLog('Direct URL match', directMatch);
         if (directMatch && directMatch[1]) {
           cid = directMatch[1];
