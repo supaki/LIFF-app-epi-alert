@@ -243,6 +243,21 @@ document.addEventListener('DOMContentLoaded', async function() {
   console.log('LIFF DEBUG: URL fragment', window.location.hash);
   console.log('LIFF DEBUG: Final CID result:', cid);
   
+  // เพิ่ม fallback method สำหรับกรณี nested liff.state
+  if (!cid) {
+    console.log('LIFF DEBUG: No CID found, trying fallback extraction from full URL');
+    const fullUrl = window.location.href;
+    console.log('LIFF DEBUG: Full URL for fallback:', fullUrl);
+    
+    // ลองหา pattern cid=ตัวเลข13หลัก ใน URL โดยตรง
+    const directMatch = fullUrl.match(/cid[=%]([0-9]{13})/);
+    console.log('LIFF DEBUG: Direct URL match:', directMatch);
+    if (directMatch && directMatch[1]) {
+      cid = directMatch[1];
+      console.log('LIFF DEBUG: Found CID with direct URL extraction:', cid);
+    }
+  }
+  
   if (!cid) {
     showError('ไม่พบเลขบัตรประชาชน (cid/pid)');
     console.log('LIFF DEBUG: No CID found. URL:', window.location.href);
