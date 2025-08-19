@@ -264,7 +264,7 @@
 
     // Main application logic
     document.addEventListener('DOMContentLoaded', async function() {
-      debugLog('LIFF App Started (Main Status Page)');
+      debugLog('LIFF App Started (v2025081913) - Main Status Page');
       debugLog('URL', window.location.href);
       debugLog('Search params', window.location.search);
       
@@ -339,6 +339,21 @@
           cid = storedCid;
           localStorage.removeItem('pendingCid');
           debugLog('Using stored CID and removed from localStorage');
+        }
+      }
+
+      // เพิ่ม fallback method สำหรับกรณี nested liff.state
+      if (!cid) {
+        debugLog('No CID found, trying fallback extraction from full URL');
+        const fullUrl = window.location.href;
+        debugLog('Full URL for fallback', fullUrl);
+        
+        // ลองหา pattern cid=ตัวเลข13หลัก ใน URL โดยตรง
+        const directMatch = fullUrl.match(/cid[=%]([0-9]{13})/);
+        debugLog('Direct URL match', directMatch);
+        if (directMatch && directMatch[1]) {
+          cid = directMatch[1];
+          debugLog('Found CID with direct URL extraction', cid);
         }
       }
 
