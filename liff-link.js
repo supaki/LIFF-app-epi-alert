@@ -209,7 +209,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   }
 
   // CID validation passed, proceed to LIFF login
-  updateStatus(1, 'fas fa-check text-green-500', 'ตรวจสอบข้อมูลสำเร็จ', `เลขบัตรประชาชน: ${cid}`);
+  updateStatus(1, 'fas fa-check text-green-500', 'ตรวจสอบข้อมูลสำเร็จ', `กำลังค้นหาข้อมูลบุคคล...`);
   
   // Delay for better UX
   setTimeout(async () => {
