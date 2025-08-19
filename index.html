@@ -265,7 +265,7 @@
     
     // Main application logic
     document.addEventListener('DOMContentLoaded', async function() {
-      debugLog('LIFF App Started (v2025081917) - Main Status Page');
+      debugLog('LIFF App Started (v2025081918) - Main Status Page');
       debugLog('URL', window.location.href);
       debugLog('Search params', window.location.search);
       
@@ -395,30 +395,38 @@
             localStorage.setItem('pendingCid', cid);
           }
           
-          // Use proper redirect URL format  
+          // Force simple URL construction to avoid any browser issues
           const baseUrl = window.location.origin + window.location.pathname;
           debugLog('Base URL for redirect', baseUrl);
           
-          const redirectUrl = new URL(baseUrl);
-          debugLog('URL object created', redirectUrl.href);
+          // Simple string concatenation method (most reliable)
+          const simpleUrl = baseUrl + (baseUrl.endsWith('/') ? '' : '') + '?cid=' + encodeURIComponent(cid);
+          debugLog('Simple URL construction', simpleUrl);
           
-          redirectUrl.searchParams.set('cid', cid);
-          debugLog('After adding CID param', redirectUrl.href);
-          debugLog('Final search params', redirectUrl.search);
+          // Try URL API method as backup
+          let apiUrl = null;
+          try {
+            const urlObj = new URL(baseUrl);
+            urlObj.searchParams.set('cid', cid);
+            apiUrl = urlObj.href;
+            debugLog('URL API construction', apiUrl);
+          } catch (e) {
+            debugLog('URL API failed', e.message);
+          }
           
-          // Additional validation
-          if (!redirectUrl.href.includes('?cid=')) {
-            debugLog('ERROR: Redirect URL missing query parameter, trying fallback');
-            const fallbackUrl = baseUrl + (baseUrl.endsWith('/') ? '' : '/') + '?cid=' + cid;
-            debugLog('Fallback URL', fallbackUrl);
-            
-            liff.login({
-              redirectUri: fallbackUrl
-            });
+          // Use simple method first, API method as fallback
+          const finalUrl = simpleUrl.includes('?cid=') ? simpleUrl : (apiUrl || simpleUrl);
+          debugLog('Final redirect URL', finalUrl);
+          
+          // Double-check the URL format
+          if (!finalUrl.includes('?cid=')) {
+            debugLog('CRITICAL ERROR: Final URL still missing query parameter!', finalUrl);
+            // Last resort - hardcode the working format
+            const hardcodedUrl = 'https://supaki.github.io/LIFF-app-epi-alert/?cid=' + encodeURIComponent(cid);
+            debugLog('Using hardcoded URL as last resort', hardcodedUrl);
+            liff.login({ redirectUri: hardcodedUrl });
           } else {
-            liff.login({
-              redirectUri: redirectUrl.href
-            });
+            liff.login({ redirectUri: finalUrl });
           }
           return;
         }
