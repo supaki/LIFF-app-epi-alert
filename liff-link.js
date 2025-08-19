@@ -108,8 +108,8 @@ document.addEventListener('DOMContentLoaded', async function() {
   console.log('window.location.search:', window.location.search);
   console.log('window.location.hash:', window.location.hash);
   console.log('urlParams:', urlParams.toString());
-  let cid = String(urlParams.get('cid') || '').trim();
-  console.log('LIFF DEBUG: cid from query', cid);
+  let cid = urlParams.get('cid');
+  console.log('cid from query:', cid);
   
   // ตรวจสอบ hash fragment ถ้าไม่เจอใน query parameters
   if (!cid && window.location.hash) {
@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       const hashString = window.location.hash.substring(1); // remove #
       console.log('hash string (after removing #):', hashString);
       const hashParams = new URLSearchParams(hashString);
-      cid = String(hashParams.get('cid') || '').trim();
+      cid = hashParams.get('cid');
       console.log('cid from hash:', cid);
     } catch (e) {
       console.log('Error parsing hash fragment:', e);
@@ -135,8 +135,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     const state = urlParams.get('state');
     console.log('LIFF DEBUG: state param', state);
     if (state && state.startsWith('cid-')) {
-      cid = String(state.replace('cid-', '')).trim();
-      console.log('LIFF DEBUG: cid from state', cid);
+      cid = state.replace('cid-', '');
+      console.log('cid from state:', cid);
     }
   }
   console.log('Checking for liff.state...');
@@ -148,96 +148,31 @@ document.addEventListener('DOMContentLoaded', async function() {
       try {
         // decode ค่า liff.state
         const decodedState = decodeURIComponent(liffState);
-        console.log('LIFF DEBUG: decoded liff.state:', decodedState);
-        console.log('LIFF DEBUG: decodedState type:', typeof decodedState);
-        console.log('LIFF DEBUG: decodedState length:', decodedState.length);
-        console.log('LIFF DEBUG: Raw liffState before decode:', liffState);
+        console.log('decoded liff.state:', decodedState);
+        console.log('decodedState type:', typeof decodedState);
+        console.log('decodedState length:', decodedState.length);
+        console.log('decodedState startsWith #:', decodedState.startsWith('#'));
         
-        // ตรวจสอบรูปแบบใหม่: cid=1234567890123 หรือ pid=1234567890123
-        if (decodedState.includes('=')) {
-          console.log('Processing as key=value format');
-          
-          // ตรวจสอบ double encoding case
-          if (decodedState.startsWith('?liff.state=') || decodedState.includes('%3D')) {
-            console.log('LIFF DEBUG: Detected double encoding, attempting to decode again');
-            try {
-              // ถ้าเจอ double encoding ให้ลองดึงค่า CID โดยตรง
-              const matches = decodedState.match(/(?:cid|pid)(?:%3D|=)([^&]+)/);
-              console.log('LIFF DEBUG: Regex matches:', matches);
-              if (matches && matches[1]) {
-                let extractedCid = matches[1];
-                console.log('LIFF DEBUG: Extracted CID before decode:', extractedCid);
-                // ถ้ายัง encoded อยู่ให้ decode อีกครั้ง
-                if (extractedCid.includes('%')) {
-                  extractedCid = decodeURIComponent(extractedCid);
-                  console.log('LIFF DEBUG: CID after additional decode:', extractedCid);
-                }
-                cid = extractedCid;
-                console.log('LIFF DEBUG: Final CID from double-encoded state:', cid);
-              } else {
-                // Fallback: ลองหาด้วย string manipulation
-                console.log('LIFF DEBUG: Regex failed, trying string manipulation');
-                if (decodedState.includes('cid')) {
-                  const cidIndex = decodedState.indexOf('cid');
-                  const afterCid = decodedState.substring(cidIndex);
-                  console.log('LIFF DEBUG: String after cid:', afterCid);
-                  
-                  // หาตัวเลขที่อยู่หลัง cid= หรือ cid%3D
-                  const numberMatch = afterCid.match(/\d{10,15}/); // ตัวเลข 10-15 หลัก
-                  if (numberMatch) {
-                    cid = String(numberMatch[0]); // แปลงเป็น string
-                    console.log('LIFF DEBUG: CID from string manipulation:', cid);
-                  }
-                }
-              }
-            } catch (doubleDecodeError) {
-              console.log('LIFF DEBUG: Error in double decode:', doubleDecodeError);
-            }
-          }
-          
-          // ถ้ายังไม่ได้ cid ให้ลองวิธีปกติ
-          if (!cid) {
-            const stateParams = new URLSearchParams('?' + decodedState);
-            cid = String(stateParams.get('cid') || stateParams.get('pid') || '').trim();
-            console.log('LIFF DEBUG: cid/pid from liff.state (key=value):', cid);
-          }
-        }
-        
-        // ตรวจสอบว่า decoded state เป็น query string หรือ hash fragment (backward compatibility)
-        if (!cid && decodedState.startsWith('?')) {
+        // ตรวจสอบว่า decoded state เป็น query string หรือ hash fragment
+        if (decodedState.startsWith('?')) {
           console.log('Processing as query string');
-          
-          // ตรวจสอบกรณี nested liff.state เช่น "?liff.state=cid=1809903415444"
-          if (decodedState.includes('liff.state=')) {
-            console.log('LIFF DEBUG: Detected nested liff.state, extracting inner content');
-            const nestedMatch = decodedState.match(/liff\.state=(.+)/);
-            if (nestedMatch && nestedMatch[1]) {
-              const innerState = nestedMatch[1];
-              console.log('LIFF DEBUG: Inner state content:', innerState);
-              
-              // ลองแยก cid จาก inner state
-              if (innerState.includes('cid=')) {
-                const cidMatch = innerState.match(/cid=([^&]+)/);
-                if (cidMatch && cidMatch[1]) {
-                  cid = String(cidMatch[1]).trim();
-                  console.log('LIFF DEBUG: CID from nested liff.state:', cid);
-                }
-              }
-            }
-          } else {
-            // กรณีปกติ
-            const stateParams = new URLSearchParams(decodedState);
-            cid = String(stateParams.get('cid') || '').trim();
-            console.log('cid from liff.state (query):', cid);
-          }
-        } else if (!cid && decodedState.startsWith('#')) {
+          const stateParams = new URLSearchParams(decodedState);
+          cid = stateParams.get('cid');
+          console.log('cid from liff.state (query):', cid);
+        } else if (decodedState.startsWith('#')) {
           console.log('Processing as hash fragment');
           // สำหรับ hash fragment เช่น #cid=3800600588871
           const hashString = decodedState.substring(1);
           console.log('hashString after removing #:', hashString);
           const hashParams = new URLSearchParams(hashString);
-          cid = String(hashParams.get('cid') || '').trim();
+          cid = hashParams.get('cid');
           console.log('cid from liff.state (hash):', cid);
+        } else {
+          console.log('Processing as plain string');
+          // ลองแปลง string ธรรมดาเป็น URLSearchParams
+          const stateParams = new URLSearchParams('?' + decodedState);
+          cid = stateParams.get('cid');
+          console.log('cid from liff.state (plain):', cid);
         }
       } catch (e) {
         console.log('Error decoding liff.state:', e);
@@ -245,15 +180,15 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
   }
   if (!cid) {
-    cid = String(urlParams.get('pid') || '').trim();
-    console.log('LIFF DEBUG: cid from pid', cid);
+    cid = urlParams.get('pid');
+    console.log('cid from pid:', cid);
   }
   if (!cid) {
     // ตรวจสอบจาก localStorage (สำหรับ redirect flow)
     const storedCid = localStorage.getItem('pendingCid');
     console.log('LIFF DEBUG: cid from localStorage', storedCid);
     if (storedCid) {
-      cid = String(storedCid).trim();
+      cid = storedCid;
       // ลบออกจาก localStorage หลังใช้แล้ว
       localStorage.removeItem('pendingCid');
       console.log('Using stored CID and removed from localStorage');
@@ -267,40 +202,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     console.log('LIFF DEBUG: No CID found. URL:', window.location.href);
     return;
   }
-  // เพิ่มฟังก์ชันตรวจสอบ identifier (อาจเป็น CID 13 หลัก หรือ PID)
-  function validateIdentifier(identifier) {
-    if (!identifier) {
-      console.log('LIFF DEBUG: Identifier validation failed - null or undefined:', identifier);
-      return false;
-    }
-    
-    // แปลงเป็น string เพื่อให้แน่ใจว่าสามารถตรวจสอบได้
-    const identifierStr = String(identifier).trim();
-    console.log('LIFF DEBUG: Validating identifier as string:', identifierStr, 'type:', typeof identifierStr);
-    
-    if (!identifierStr) {
-      console.log('LIFF DEBUG: Identifier validation failed - empty string after trim');
-      return false;
-    }
-    
-    // ตรวจสอบว่าเป็น CID (13 หลัก) หรือ PID (รูปแบบอื่นๆ)
-    if (/^\d{13}$/.test(identifierStr)) {
-      console.log('LIFF DEBUG: Identifier is valid CID (13 digits):', identifierStr);
-      return true;
-    } else if (/^\d{10,15}$/.test(identifierStr)) {
-      // รองรับตัวเลข 10-15 หลัก (อาจเป็น PID หรือ CID ที่ไม่ใช่ 13 หลักพอดี)
-      console.log('LIFF DEBUG: Identifier is valid numeric ID (10-15 digits):', identifierStr);
-      return true;
-    } else if (identifierStr.length > 0) {
-      console.log('LIFF DEBUG: Identifier is non-empty string (PID format):', identifierStr);
-      return true;
-    }
-    
-    console.log('LIFF DEBUG: Identifier validation failed for:', identifierStr);
-    return false;
+  // เพิ่มฟังก์ชันตรวจสอบ cid
+  function validateCid(cid) {
+    return typeof cid === 'string' && /^\d{13}$/.test(cid);
   }
   
-  if (!cid || !validateIdentifier(cid)) {
+  if (!cid || !validateCid(cid)) {
     showError('เลขบัตรประชาชน (CID) ไม่ถูกต้อง ต้องเป็นตัวเลข 13 หลัก');
     console.log('LIFF DEBUG: Invalid CID', cid);
     console.log('LIFF DEBUG: Full URL for debugging:', window.location.href);
