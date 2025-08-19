@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบแจ้งเตือนการนัดฉีดวัคซีน - สถานะการเชื่อมต่อ v6</title>
+  <title>ระบบแจ้งเตือนการนัดฉีดวัคซีน - สถานะการเชื่อมต่อ v5</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -54,18 +54,6 @@
     .status-card.warning {
       border-left-color: #f59e0b;
       background: linear-gradient(135deg, #fffbeb 0%, #fefce8 100%);
-    }
-    .status-card.info {
-      border-left-color: #3b82f6;
-      background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
-    }
-    .bounce {
-      animation: bounce 2s infinite;
-    }
-    @keyframes bounce {
-      0%, 20%, 53%, 80%, 100% { transform: translateY(0); }
-      40%, 43% { transform: translateY(-10px); }
-      70% { transform: translateY(-5px); }
     }
   </style>
 </head>
@@ -119,19 +107,6 @@
           </div>
         </div>
 
-        <!-- Friend Status -->
-        <div id="friendCard" class="status-card p-4 rounded-lg">
-          <div class="flex items-center">
-            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mr-3">
-              <i class="fas fa-user-plus text-sm text-gray-500"></i>
-            </div>
-            <div>
-              <div class="font-medium text-gray-800">สถานะเป็นเพื่อน Bot</div>
-              <div id="friendStatus" class="text-sm text-gray-500">รอการตรวจสอบ...</div>
-            </div>
-          </div>
-        </div>
-
         <!-- Account Linking Status -->
         <div id="linkCard" class="status-card p-4 rounded-lg">
           <div class="flex items-center">
@@ -161,24 +136,9 @@
 
       <!-- Action Buttons -->
       <div id="actionButtons" class="space-y-3 hidden">
-        <div id="addFriendSection" class="hidden">
-          <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-            <div class="flex items-center text-yellow-800 mb-2">
-              <i class="fas fa-exclamation-triangle mr-2"></i>
-              <span class="font-medium">จำเป็นต้องเพิ่ม Bot เป็นเพื่อนก่อน</span>
-            </div>
-            <p class="text-sm text-yellow-700">
-              เพื่อให้ระบบสามารถส่งการแจ้งเตือนให้คุณได้ กรุณาเพิ่ม LINE Bot เป็นเพื่อนก่อน
-            </p>
-          </div>
-          <button id="addFriendBtn" class="w-full line-gradient hover:opacity-90 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 bounce">
-            <i class="fab fa-line mr-2"></i>เพิ่มเพื่อนกับ LINE Bot
-          </button>
-          <button id="recheckFriendBtn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-xl transition-colors mt-2">
-            <i class="fas fa-sync-alt mr-2"></i>ตรวจสอบสถานะอีกครั้ง
-          </button>
-        </div>
-        
+        <button id="addFriendBtn" class="w-full line-gradient hover:opacity-90 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105">
+          <i class="fab fa-line mr-2"></i>เพิ่มเพื่อนกับ LINE Bot
+        </button>
         <button onclick="window.close()" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-xl transition-colors">
           <i class="fas fa-times mr-2"></i>ปิดหน้าต่างนี้
         </button>
@@ -211,9 +171,7 @@
       console.log('LIFF DEBUG:', message, data);
       const debugDiv = document.getElementById('debug-info');
       if (debugDiv) {
-        const timestamp = new Date().toLocaleTimeString();
-        debugDiv.innerHTML += `<div>${timestamp}: ${message} ${data ? JSON.stringify(data) : ''}</div>`;
-        debugDiv.scrollTop = debugDiv.scrollHeight;
+        debugDiv.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message} ${data ? JSON.stringify(data) : ''}</div>`;
       }
     }
 
@@ -223,9 +181,7 @@
     const statusDetail = document.getElementById('statusDetail');
     const statusCards = document.getElementById('statusCards');
     const actionButtons = document.getElementById('actionButtons');
-    const addFriendSection = document.getElementById('addFriendSection');
     const addFriendBtn = document.getElementById('addFriendBtn');
-    const recheckFriendBtn = document.getElementById('recheckFriendBtn');
 
     // Status update functions
     function updateMainStatus(icon, text, detail = '', isLoading = false) {
@@ -238,7 +194,7 @@
       if (statusDetail) {
         statusDetail.textContent = detail;
       }
-      debugLog(`Status: ${text}`, detail);
+      console.log(`Status: ${text} ${detail ? '- ' + detail : ''}`);
     }
 
     function updateCardStatus(cardId, status, text, icon = null) {
@@ -249,7 +205,7 @@
       if (!card || !statusElement) return;
 
       // Remove all status classes
-      card.classList.remove('success', 'error', 'warning', 'info');
+      card.classList.remove('success', 'error', 'warning');
       
       // Update status text
       statusElement.textContent = text;
@@ -279,12 +235,6 @@
             iconElement.className = `fas fa-exclamation-triangle text-yellow-500`;
           }
           break;
-        case 'info':
-          card.classList.add('info');
-          if (iconElement) {
-            iconElement.className = `fas fa-info-circle text-blue-500`;
-          }
-          break;
       }
     }
 
@@ -295,23 +245,16 @@
       }
     }
 
-    function showActionButtons() {
-      if (actionButtons) {
+    function showSuccess(message, showButtons = false) {
+      updateMainStatus('fas fa-check-circle text-green-500', 'เชื่อมต่อสำเร็จ!', message);
+      if (showButtons && actionButtons) {
         actionButtons.classList.remove('hidden');
         actionButtons.classList.add('slide-up');
       }
     }
 
-    function showSuccess(message, showButtons = false) {
-      updateMainStatus('fas fa-check-circle text-green-500', 'เชื่อมต่อสำเร็จ!', message);
-      if (showButtons) {
-        showActionButtons();
-      }
-    }
-
     function showError(message) {
       updateMainStatus('fas fa-exclamation-triangle text-red-500', 'เกิดข้อผิดพลาด', message);
-      showActionButtons();
     }
 
     // Validation function
@@ -319,59 +262,24 @@
       return typeof cid === 'string' && /^\d{13}$/.test(cid);
     }
 
-    // Check if user is friend with the bot
-    async function checkFriendStatus(userId) {
-      try {
-        debugLog('Checking friend status for userId', userId);
-        const response = await liff.getFriendship();
-        debugLog('Friendship response', response);
-        return response.friendFlag;
-      } catch (error) {
-        debugLog('Error checking friendship', error);
-        // If we can't check, assume they need to add friend
-        return false;
-      }
-    }
-
-    // Send welcome message through backend
-    async function sendWelcomeMessage(cid, userId, personName) {
-      try {
-        const params = new URLSearchParams({
-          action: 'sendWelcomeMessage',
-          cid: cid,
-          lineUserId: userId,
-          personName: personName || ''
-        });
-
-        const response = await fetch(GAS_WEBAPP_URL + '?' + params.toString(), {
-          method: 'GET'
-        });
-        const data = await response.json();
-        debugLog('Welcome message response', data);
-        return data.success;
-      } catch (error) {
-        debugLog('Error sending welcome message', error);
-        return false;
-      }
-    }
-
     // Main application logic
     document.addEventListener('DOMContentLoaded', async function() {
-      debugLog('LIFF App Started (Enhanced Version v6)');
+      debugLog('LIFF App Started (Main Status Page)');
       debugLog('URL', window.location.href);
       debugLog('Search params', window.location.search);
       
       // Initialize
       updateMainStatus('fas fa-search text-blue-500', 'กำลังตรวจสอบข้อมูล...', 'กรุณารอสักครู่', true);
       
-      // Get CID from URL parameters
+      // Get CID from URL parameters (support multiple possible parameter names)
       const urlParams = new URLSearchParams(window.location.search);
       let cid = urlParams.get('cid');
       debugLog('cid from query', cid);
 
-      // Try alternative parameter sources
       if (!cid) {
+        // กรณีถูก redirect หลัง LINE Login จะมี state parameter
         const state = urlParams.get('state');
+        debugLog('state param', state);
         if (state && state.startsWith('cid-')) {
           cid = state.replace('cid-', '');
           debugLog('cid from state', cid);
@@ -379,18 +287,23 @@
       }
 
       if (!cid) {
+        // ตรวจสอบ liff.state parameter ที่อาจจะมี encoded URL
         const liffState = urlParams.get('liff.state');
+        debugLog('liff.state param', liffState);
         if (liffState) {
           try {
             const decodedState = decodeURIComponent(liffState);
             debugLog('decoded liff.state', decodedState);
             
+            // ตรวจสอบทั้ง query string (?) และ fragment (#)
             if (decodedState.startsWith('?')) {
               const stateParams = new URLSearchParams(decodedState);
               cid = stateParams.get('cid');
+              debugLog('cid from liff.state query', cid);
             } else if (decodedState.startsWith('#')) {
               const fragmentParams = new URLSearchParams(decodedState.substring(1));
               cid = fragmentParams.get('cid');
+              debugLog('cid from liff.state fragment', cid);
             }
           } catch (e) {
             debugLog('Error decoding liff.state', e.message);
@@ -400,13 +313,32 @@
 
       if (!cid) {
         cid = urlParams.get('pid');
+        debugLog('cid from pid', cid);
       }
 
       if (!cid) {
+        // ตรวจสอบจาก URL fragment (สำหรับ redirect flow)
         const fragment = window.location.hash;
+        debugLog('URL fragment', fragment);
         if (fragment && fragment.startsWith('#')) {
           const fragmentParams = new URLSearchParams(fragment.substring(1));
-          cid = fragmentParams.get('cid');
+          const fragmentCid = fragmentParams.get('cid');
+          debugLog('cid from fragment', fragmentCid);
+          if (fragmentCid) {
+            cid = fragmentCid;
+            debugLog('Using CID from URL fragment');
+          }
+        }
+      }
+
+      if (!cid) {
+        // ตรวจสอบจาก localStorage เป็นตัวเลือกสำรอง
+        const storedCid = localStorage.getItem('pendingCid');
+        debugLog('cid from localStorage', storedCid);
+        if (storedCid) {
+          cid = storedCid;
+          localStorage.removeItem('pendingCid');
+          debugLog('Using stored CID and removed from localStorage');
         }
       }
 
@@ -414,6 +346,7 @@
       if (!cid || !validateCid(cid)) {
         showError('เลขบัตรประชาชน (CID) ไม่ถูกต้อง ต้องเป็นตัวเลข 13 หลัก');
         updateCardStatus('cidCard', 'error', 'เลขบัตรประชาชนไม่ถูกต้อง');
+        debugLog('Invalid CID', cid);
         return;
       }
 
@@ -425,7 +358,7 @@
       // Update CID status
       updateCardStatus('cidCard', 'success', `เลขบัตร: ${cid.substring(0, 4)}-${cid.substring(4, 9)}-${cid.substring(9)}`);
       
-      // Wait for better UX
+      // Wait a bit for better UX
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       try {
@@ -452,72 +385,73 @@
 
         updateCardStatus('lineCard', 'success', `เข้าสู่ระบบเป็น: ${userName}`);
 
-        // Check friend status
-        updateMainStatus('fas fa-user-plus text-blue-500', 'กำลังตรวจสอบสถานะเป็นเพื่อน...', 'กรุณารอสักครู่', true);
-        updateCardStatus('friendCard', 'loading', 'กำลังตรวจสอบ...', 'fa-spinner fa-spin');
-
-        const isFriend = await checkFriendStatus(userId);
-        debugLog('Friend status', isFriend);
-
-        if (!isFriend) {
-          updateCardStatus('friendCard', 'warning', 'ยังไม่ได้เป็นเพื่อนกับ Bot');
-          updateMainStatus('fas fa-user-plus text-yellow-500', 'จำเป็นต้องเพิ่มเพื่อนก่อน', 'กรุณาเพิ่ม LINE Bot เป็นเพื่อนเพื่อรับการแจ้งเตือน');
-          
-          // Show add friend section
-          if (addFriendSection) {
-            addFriendSection.classList.remove('hidden');
-          }
-          showActionButtons();
-
-          // Setup add friend button
-          if (addFriendBtn) {
-            addFriendBtn.onclick = function() {
-              debugLog('Opening LINE Bot friend page');
-              window.open('https://line.me/R/ti/p/~' + BOT_BASIC_ID, '_blank');
-            };
-          }
-
-          // Setup recheck button
-          if (recheckFriendBtn) {
-            let recheckCount = 0;
-            recheckFriendBtn.onclick = async function() {
-              if (recheckCount >= 3) {
-                alert('คุณได้ตรวจสอบหลายครั้งแล้ว กรุณาตรวจสอบว่าได้เพิ่มเพื่อนจริงแล้วหรือไม่');
-                return;
-              }
-              
-              recheckCount++;
-              debugLog('Rechecking friend status, attempt', recheckCount);
-              
-              updateCardStatus('friendCard', 'loading', 'กำลังตรวจสอบอีกครั้ง...', 'fa-spinner fa-spin');
-              recheckFriendBtn.disabled = true;
-              recheckFriendBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>กำลังตรวจสอบ...';
-              
-              await new Promise(resolve => setTimeout(resolve, 2000));
-              
-              const newFriendStatus = await checkFriendStatus(userId);
-              debugLog('Recheck friend status result', newFriendStatus);
-              
-              if (newFriendStatus) {
-                updateCardStatus('friendCard', 'success', 'เป็นเพื่อนกับ Bot แล้ว');
-                // Continue with account linking
-                await proceedWithLinking(cid, userId, userName);
-              } else {
-                updateCardStatus('friendCard', 'warning', 'ยังไม่ได้เป็นเพื่อนกับ Bot');
-                alert('ยังไม่พบว่าคุณเป็นเพื่อนกับ Bot กรุณาตรวจสอบอีกครั้ง');
-              }
-              
-              recheckFriendBtn.disabled = false;
-              recheckFriendBtn.innerHTML = '<i class="fas fa-sync-alt mr-2"></i>ตรวจสอบสถานะอีกครั้ง';
-            };
-          }
-          return;
+        // Setup add friend button
+        if (addFriendBtn) {
+          addFriendBtn.onclick = function() {
+            window.open('https://line.me/R/ti/p/~' + BOT_BASIC_ID, '_blank');
+          };
         }
 
-        updateCardStatus('friendCard', 'success', 'เป็นเพื่อนกับ Bot แล้ว');
-        
-        // Proceed with account linking
-        await proceedWithLinking(cid, userId, userName);
+        // Link account
+        updateMainStatus('fas fa-link text-blue-500', 'กำลังผูกบัญชี...', 'กำลังบันทึกข้อมูลลงระบบ', true);
+        updateCardStatus('linkCard', 'loading', 'กำลังผูกบัญชีกับระบบ...', 'fa-spinner fa-spin');
+        debugLog('Saving LINE ID to person', { cid, userId });
+
+        const params = new URLSearchParams({
+          action: 'saveLineIdToPerson',
+          cid: cid,
+          lineUserId: userId
+        });
+
+        try {
+          const response = await fetch(GAS_WEBAPP_URL + '?' + params.toString(), {
+            method: 'GET'
+          });
+          const data = await response.json();
+          debugLog('Backend response', data);
+
+          if (data.success) {
+            updateCardStatus('linkCard', 'success', `ผูกบัญชีสำเร็จ: ${data.personName || 'ไม่ทราบชื่อ'}`);
+            updateCardStatus('notificationCard', 'loading', 'กำลังส่งข้อความต้อนรับ...', 'fa-spinner fa-spin');
+            
+            // Show final success
+            setTimeout(() => {
+              updateCardStatus('notificationCard', 'success', 'ส่งข้อความต้อนรับแล้ว');
+              showSuccess(
+                `สวัสดี ${data.personName || 'คุณ'}!\nระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot\nคุณสามารถปิดหน้านี้ได้`
+              );
+            }, 2000);
+          } else {
+            updateCardStatus('linkCard', 'error', 'ไม่สามารถผูกบัญชีได้');
+            showError(data.error || 'ไม่สามารถผูกบัญชีได้');
+          }
+        } catch (fetchError) {
+          debugLog('Fetch failed, trying fallback method', fetchError.message);
+          
+          // Fallback method using image request
+          updateCardStatus('linkCard', 'warning', 'ใช้วิธีสำรองในการส่งข้อมูล...');
+          
+          const fallbackUrl = GAS_WEBAPP_URL + '?' + params.toString() + '&_callback=image';
+          const img = new Image();
+          
+          img.onload = img.onerror = function() {
+            debugLog('Fallback request completed');
+            updateCardStatus('linkCard', 'success', 'ผูกบัญชีสำเร็จ (วิธีสำรอง)');
+            updateCardStatus('notificationCard', 'success', 'ข้อความต้อนรับจะส่งในไม่ช้า');
+            showSuccess('เชื่อมต่อสำเร็จ!\nระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot');
+          };
+          
+          img.src = fallbackUrl;
+          
+          // Final fallback after 5 seconds
+          setTimeout(() => {
+            if (statusText && statusText.textContent.includes('กำลัง')) {
+              updateCardStatus('linkCard', 'success', 'ผูกบัญชีสำเร็จ');
+              updateCardStatus('notificationCard', 'success', 'ข้อความต้อนรับจะส่งในไม่ช้า');
+              showSuccess('เชื่อมต่อสำเร็จ!\nระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot');
+            }
+          }, 5000);
+        }
 
       } catch (liffError) {
         debugLog('LIFF init error', liffError.message);
@@ -525,81 +459,6 @@
         showError('เกิดข้อผิดพลาดในการเชื่อมต่อ LIFF: ' + liffError.message);
       }
     });
-
-    // Function to handle account linking process
-    async function proceedWithLinking(cid, userId, userName) {
-      // Link account
-      updateMainStatus('fas fa-link text-blue-500', 'กำลังผูกบัญชี...', 'กำลังบันทึกข้อมูลลงระบบ', true);
-      updateCardStatus('linkCard', 'loading', 'กำลังผูกบัญชีกับระบบ...', 'fa-spinner fa-spin');
-      debugLog('Saving LINE ID to person', { cid, userId });
-
-      const params = new URLSearchParams({
-        action: 'saveLineIdToPerson',
-        cid: cid,
-        lineUserId: userId
-      });
-
-      try {
-        const response = await fetch(GAS_WEBAPP_URL + '?' + params.toString(), {
-          method: 'GET'
-        });
-        const data = await response.json();
-        debugLog('Backend response', data);
-
-        if (data.success) {
-          updateCardStatus('linkCard', 'success', `ผูกบัญชีสำเร็จ: ${data.personName || 'ไม่ทราบชื่อ'}`);
-          
-          // Send welcome message
-          updateCardStatus('notificationCard', 'loading', 'กำลังส่งข้อความต้อนรับ...', 'fa-spinner fa-spin');
-          
-          // Try to send welcome message
-          const welcomeSent = await sendWelcomeMessage(cid, userId, data.personName);
-          
-          if (welcomeSent) {
-            updateCardStatus('notificationCard', 'success', 'ส่งข้อความต้อนรับแล้ว');
-          } else {
-            updateCardStatus('notificationCard', 'info', 'ข้อความต้อนรับจะส่งในไม่ช้า');
-          }
-          
-          // Show final success
-          setTimeout(() => {
-            showSuccess(
-              `สวัสดี ${data.personName || 'คุณ'}!\nระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot\nคุณสามารถปิดหน้านี้ได้`,
-              true
-            );
-          }, 2000);
-        } else {
-          updateCardStatus('linkCard', 'error', 'ไม่สามารถผูกบัญชีได้');
-          showError(data.error || 'ไม่สามารถผูกบัญชีได้');
-        }
-      } catch (fetchError) {
-        debugLog('Fetch failed, trying fallback method', fetchError.message);
-        
-        // Fallback method using image request
-        updateCardStatus('linkCard', 'warning', 'ใช้วิธีสำรองในการส่งข้อมูล...');
-        
-        const fallbackUrl = GAS_WEBAPP_URL + '?' + params.toString() + '&_callback=image';
-        const img = new Image();
-        
-        img.onload = img.onerror = function() {
-          debugLog('Fallback request completed');
-          updateCardStatus('linkCard', 'success', 'ผูกบัญชีสำเร็จ (วิธีสำรong)');
-          updateCardStatus('notificationCard', 'info', 'ข้อความต้อนรับจะส่งในไม่ช้า');
-          showSuccess('เชื่อมต่อสำเร็จ!\nระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot\nคุณสามารถปิดหน้านี้ได้', true);
-        };
-        
-        img.src = fallbackUrl;
-        
-        // Final fallback after 5 seconds
-        setTimeout(() => {
-          if (statusText && statusText.textContent.includes('กำลัง')) {
-            updateCardStatus('linkCard', 'success', 'ผูกบัญชีสำเร็จ');
-            updateCardStatus('notificationCard', 'success', 'ข้อความต้อนรับจะส่งในไม่ช้า');
-            showSuccess('เชื่อมต่อสำเร็จ!\nระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot\nคุณสามารถปิดหน้านี้ได้', true);
-          }
-        }, 5000);
-      }
-    }
   </script>
 </body>
 </html>
