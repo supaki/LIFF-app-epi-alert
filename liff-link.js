@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   console.log('window.location.search:', window.location.search);
   console.log('window.location.hash:', window.location.hash);
   console.log('urlParams:', urlParams.toString());
-  let cid = urlParams.get('cid');
+  let cid = String(urlParams.get('cid') || '').trim();
   console.log('LIFF DEBUG: cid from query', cid);
   
   // ตรวจสอบ hash fragment ถ้าไม่เจอใน query parameters
@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       const hashString = window.location.hash.substring(1); // remove #
       console.log('hash string (after removing #):', hashString);
       const hashParams = new URLSearchParams(hashString);
-      cid = hashParams.get('cid');
+      cid = String(hashParams.get('cid') || '').trim();
       console.log('cid from hash:', cid);
     } catch (e) {
       console.log('Error parsing hash fragment:', e);
@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const state = urlParams.get('state');
     console.log('LIFF DEBUG: state param', state);
     if (state && state.startsWith('cid-')) {
-      cid = state.replace('cid-', '');
+      cid = String(state.replace('cid-', '')).trim();
       console.log('LIFF DEBUG: cid from state', cid);
     }
   }
@@ -185,7 +185,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                   // หาตัวเลขที่อยู่หลัง cid= หรือ cid%3D
                   const numberMatch = afterCid.match(/\d{10,15}/); // ตัวเลข 10-15 หลัก
                   if (numberMatch) {
-                    cid = numberMatch[0];
+                    cid = String(numberMatch[0]); // แปลงเป็น string
                     console.log('LIFF DEBUG: CID from string manipulation:', cid);
                   }
                 }
@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', async function() {
           // ถ้ายังไม่ได้ cid ให้ลองวิธีปกติ
           if (!cid) {
             const stateParams = new URLSearchParams('?' + decodedState);
-            cid = stateParams.get('cid') || stateParams.get('pid');
+            cid = String(stateParams.get('cid') || stateParams.get('pid') || '').trim();
             console.log('LIFF DEBUG: cid/pid from liff.state (key=value):', cid);
           }
         }
@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (!cid && decodedState.startsWith('?')) {
           console.log('Processing as query string');
           const stateParams = new URLSearchParams(decodedState);
-          cid = stateParams.get('cid');
+          cid = String(stateParams.get('cid') || '').trim();
           console.log('cid from liff.state (query):', cid);
         } else if (!cid && decodedState.startsWith('#')) {
           console.log('Processing as hash fragment');
@@ -215,7 +215,7 @@ document.addEventListener('DOMContentLoaded', async function() {
           const hashString = decodedState.substring(1);
           console.log('hashString after removing #:', hashString);
           const hashParams = new URLSearchParams(hashString);
-          cid = hashParams.get('cid');
+          cid = String(hashParams.get('cid') || '').trim();
           console.log('cid from liff.state (hash):', cid);
         }
       } catch (e) {
@@ -224,7 +224,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
   }
   if (!cid) {
-    cid = urlParams.get('pid');
+    cid = String(urlParams.get('pid') || '').trim();
     console.log('LIFF DEBUG: cid from pid', cid);
   }
   if (!cid) {
@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const storedCid = localStorage.getItem('pendingCid');
     console.log('LIFF DEBUG: cid from localStorage', storedCid);
     if (storedCid) {
-      cid = storedCid;
+      cid = String(storedCid).trim();
       // ลบออกจาก localStorage หลังใช้แล้ว
       localStorage.removeItem('pendingCid');
       console.log('Using stored CID and removed from localStorage');
@@ -248,25 +248,34 @@ document.addEventListener('DOMContentLoaded', async function() {
   }
   // เพิ่มฟังก์ชันตรวจสอบ identifier (อาจเป็น CID 13 หลัก หรือ PID)
   function validateIdentifier(identifier) {
-    if (!identifier || typeof identifier !== 'string') {
-      console.log('LIFF DEBUG: Identifier validation failed - null or not string:', identifier);
+    if (!identifier) {
+      console.log('LIFF DEBUG: Identifier validation failed - null or undefined:', identifier);
+      return false;
+    }
+    
+    // แปลงเป็น string เพื่อให้แน่ใจว่าสามารถตรวจสอบได้
+    const identifierStr = String(identifier).trim();
+    console.log('LIFF DEBUG: Validating identifier as string:', identifierStr, 'type:', typeof identifierStr);
+    
+    if (!identifierStr) {
+      console.log('LIFF DEBUG: Identifier validation failed - empty string after trim');
       return false;
     }
     
     // ตรวจสอบว่าเป็น CID (13 หลัก) หรือ PID (รูปแบบอื่นๆ)
-    if (/^\d{13}$/.test(identifier)) {
-      console.log('LIFF DEBUG: Identifier is valid CID (13 digits):', identifier);
+    if (/^\d{13}$/.test(identifierStr)) {
+      console.log('LIFF DEBUG: Identifier is valid CID (13 digits):', identifierStr);
       return true;
-    } else if (/^\d{10,15}$/.test(identifier)) {
+    } else if (/^\d{10,15}$/.test(identifierStr)) {
       // รองรับตัวเลข 10-15 หลัก (อาจเป็น PID หรือ CID ที่ไม่ใช่ 13 หลักพอดี)
-      console.log('LIFF DEBUG: Identifier is valid numeric ID (10-15 digits):', identifier);
+      console.log('LIFF DEBUG: Identifier is valid numeric ID (10-15 digits):', identifierStr);
       return true;
-    } else if (identifier.length > 0 && identifier.trim() !== '') {
-      console.log('LIFF DEBUG: Identifier is non-empty string (PID format):', identifier);
+    } else if (identifierStr.length > 0) {
+      console.log('LIFF DEBUG: Identifier is non-empty string (PID format):', identifierStr);
       return true;
     }
     
-    console.log('LIFF DEBUG: Identifier validation failed for:', identifier);
+    console.log('LIFF DEBUG: Identifier validation failed for:', identifierStr);
     return false;
   }
   
