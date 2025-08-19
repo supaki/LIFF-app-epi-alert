@@ -264,7 +264,7 @@
 
     // Main application logic
     document.addEventListener('DOMContentLoaded', async function() {
-      debugLog('LIFF App Started (v2025081915) - Main Status Page');
+      debugLog('LIFF App Started (v2025081916) - Main Status Page');
       debugLog('URL', window.location.href);
       debugLog('Search params', window.location.search);
       
@@ -394,9 +394,9 @@
             localStorage.setItem('pendingCid', cid);
           }
           
-          // Use proper redirect URL format
-          const redirectUrl = new URL(window.location.href);
-          redirectUrl.search = `?cid=${cid}`;
+          // Use proper redirect URL format  
+          const redirectUrl = new URL(window.location.origin + window.location.pathname);
+          redirectUrl.searchParams.set('cid', cid);
           debugLog('Login redirect URL', redirectUrl.href);
           
           liff.login({
