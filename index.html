@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบแจ้งเตือนการนัดฉีดวัคซีน - สถานะการเชื่อมต่อ v6</title>
+  <title>ระบบแจ้งเตือนการนัดฉีดวัคซีน - สถานะการเชื่อมต่อ v5</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -262,10 +262,9 @@
       return typeof cid === 'string' && /^\d{13}$/.test(cid);
     }
 
-    
     // Main application logic
     document.addEventListener('DOMContentLoaded', async function() {
-      debugLog('LIFF App Started (v2025081918) - Main Status Page');
+      debugLog('LIFF App Started (Main Status Page)');
       debugLog('URL', window.location.href);
       debugLog('Search params', window.location.search);
       
@@ -343,21 +342,6 @@
         }
       }
 
-      // เพิ่ม fallback method สำหรับกรณี nested liff.state
-      if (!cid) {
-        debugLog('No CID found, trying fallback extraction from full URL');
-        const fullUrl = window.location.href;
-        debugLog('Full URL for fallback', fullUrl);
-        
-        // ลองหา pattern cid=ตัวเลข13หลัก ใน URL โดยตรง (รองรับ URL encoding)
-        const directMatch = fullUrl.match(/cid(?:%3D|%253D|=)([0-9]{13})/);
-        debugLog('Direct URL match', directMatch);
-        if (directMatch && directMatch[1]) {
-          cid = directMatch[1];
-          debugLog('Found CID with direct URL extraction', cid);
-        }
-      }
-
       // Validate CID
       if (!cid || !validateCid(cid)) {
         showError('เลขบัตรประชาชน (CID) ไม่ถูกต้อง ต้องเป็นตัวเลข 13 หลัก');
@@ -388,46 +372,8 @@
         if (!liff.isLoggedIn()) {
           updateMainStatus('fab fa-line text-blue-500', 'กำลังเข้าสู่ระบบ LINE...', 'กรุณาเข้าสู่ระบบ LINE', true);
           updateCardStatus('lineCard', 'loading', 'รอการเข้าสู่ระบบ...', 'fa-spinner fa-spin');
-          debugLog('Not logged in, starting login with CID', cid);
-          
-          // Store CID for after login redirect
-          if (cid) {
-            localStorage.setItem('pendingCid', cid);
-          }
-          
-          // Force simple URL construction to avoid any browser issues
-          const baseUrl = window.location.origin + window.location.pathname;
-          debugLog('Base URL for redirect', baseUrl);
-          
-          // Simple string concatenation method (most reliable)
-          const simpleUrl = baseUrl + (baseUrl.endsWith('/') ? '' : '') + '?cid=' + encodeURIComponent(cid);
-          debugLog('Simple URL construction', simpleUrl);
-          
-          // Try URL API method as backup
-          let apiUrl = null;
-          try {
-            const urlObj = new URL(baseUrl);
-            urlObj.searchParams.set('cid', cid);
-            apiUrl = urlObj.href;
-            debugLog('URL API construction', apiUrl);
-          } catch (e) {
-            debugLog('URL API failed', e.message);
-          }
-          
-          // Use simple method first, API method as fallback
-          const finalUrl = simpleUrl.includes('?cid=') ? simpleUrl : (apiUrl || simpleUrl);
-          debugLog('Final redirect URL', finalUrl);
-          
-          // Double-check the URL format
-          if (!finalUrl.includes('?cid=')) {
-            debugLog('CRITICAL ERROR: Final URL still missing query parameter!', finalUrl);
-            // Last resort - hardcode the working format
-            const hardcodedUrl = 'https://supaki.github.io/LIFF-app-epi-alert/?cid=' + encodeURIComponent(cid);
-            debugLog('Using hardcoded URL as last resort', hardcodedUrl);
-            liff.login({ redirectUri: hardcodedUrl });
-          } else {
-            liff.login({ redirectUri: finalUrl });
-          }
+          debugLog('Not logged in, starting login');
+          liff.login();
           return;
         }
 
