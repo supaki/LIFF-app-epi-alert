@@ -156,9 +156,20 @@ document.addEventListener('DOMContentLoaded', async function() {
         // ตรวจสอบว่า decoded state เป็น query string หรือ hash fragment
         if (decodedState.startsWith('?')) {
           console.log('Processing as query string');
-          const stateParams = new URLSearchParams(decodedState);
-          cid = stateParams.get('cid');
-          console.log('cid from liff.state (query):', cid);
+          
+          // ตรวจสอบกรณี nested liff.state เช่น "?liff.state=cid=1809903415444"
+          if (decodedState.includes('liff.state=cid=')) {
+            console.log('LIFF DEBUG: Found nested liff.state with cid');
+            const match = decodedState.match(/liff\.state=cid=([^&]+)/);
+            if (match && match[1]) {
+              cid = match[1];
+              console.log('LIFF DEBUG: Extracted CID from nested liff.state:', cid);
+            }
+          } else {
+            const stateParams = new URLSearchParams(decodedState);
+            cid = stateParams.get('cid');
+            console.log('cid from liff.state (query):', cid);
+          }
         } else if (decodedState.startsWith('#')) {
           console.log('Processing as hash fragment');
           // สำหรับ hash fragment เช่น #cid=3800600588871
