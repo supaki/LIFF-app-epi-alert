@@ -264,7 +264,7 @@
 
     // Main application logic
     document.addEventListener('DOMContentLoaded', async function() {
-      debugLog('LIFF App Started (v2025081914) - Main Status Page');
+      debugLog('LIFF App Started (v2025081915) - Main Status Page');
       debugLog('URL', window.location.href);
       debugLog('Search params', window.location.search);
       
@@ -387,8 +387,21 @@
         if (!liff.isLoggedIn()) {
           updateMainStatus('fab fa-line text-blue-500', 'กำลังเข้าสู่ระบบ LINE...', 'กรุณาเข้าสู่ระบบ LINE', true);
           updateCardStatus('lineCard', 'loading', 'รอการเข้าสู่ระบบ...', 'fa-spinner fa-spin');
-          debugLog('Not logged in, starting login');
-          liff.login();
+          debugLog('Not logged in, starting login with CID', cid);
+          
+          // Store CID for after login redirect
+          if (cid) {
+            localStorage.setItem('pendingCid', cid);
+          }
+          
+          // Use proper redirect URL format
+          const redirectUrl = new URL(window.location.href);
+          redirectUrl.search = `?cid=${cid}`;
+          debugLog('Login redirect URL', redirectUrl.href);
+          
+          liff.login({
+            redirectUri: redirectUrl.href
+          });
           return;
         }
 
