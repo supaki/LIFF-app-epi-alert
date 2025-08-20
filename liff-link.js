@@ -309,5 +309,8 @@ document.addEventListener('DOMContentLoaded', async function() {
           }
         }, 5000);
       });
+    } catch (e) {
+      showError('เกิดข้อผิดพลาดในการเชื่อมต่อ LIFF: ' + e.message);
+    }
   }, 1000); // 1 second delay for better UX
 });
