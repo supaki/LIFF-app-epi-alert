@@ -611,6 +611,8 @@
         debugLog('Backend response', data);
         debugLog('LINE ID being saved', userId);
         debugLog('CID being used', cid);
+        debugLog('Response success status', data.success);
+        debugLog('Response error message', data.error);
 
         if (data.success) {
           updateCardStatus('linkCard', 'success', `ผูกบัญชีสำเร็จ: ${data.personName || 'ไม่ทราบชื่อ'}`);
@@ -631,6 +633,30 @@
           setTimeout(() => {
             showSuccess(
               `สวัสดี ${data.personName || 'คุณ'}!\nระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot\nคุณสามารถปิดหน้านี้ได้`,
+              true
+            );
+          }, 2000);
+        } else if (data.error && data.error.includes('บัญชีนี้ได้ผูกกับ LINE แล้ว')) {
+          // Handle already linked account case
+          debugLog('Account already linked, proceeding to send notification');
+          updateCardStatus('linkCard', 'success', `บัญชีผูกแล้ว: ${data.personName || 'ไม่ทราบชื่อ'}`);
+          
+          // Send welcome message for already linked account
+          updateCardStatus('notificationCard', 'loading', 'กำลังส่งข้อความแจ้งเตือน...', 'fa-spinner fa-spin');
+          
+          // Try to send welcome message
+          const welcomeSent = await sendWelcomeMessage(cid, userId, data.personName);
+          
+          if (welcomeSent) {
+            updateCardStatus('notificationCard', 'success', 'ส่งข้อความแจ้งเตือนแล้ว');
+          } else {
+            updateCardStatus('notificationCard', 'info', 'ข้อความแจ้งเตือนจะส่งในไม่ช้า');
+          }
+          
+          // Show final success for already linked account
+          setTimeout(() => {
+            showSuccess(
+              `สวัสดี ${data.personName || 'คุณ'}!\nบัญชีของคุณเชื่อมต่อกับระบบแล้ว\nระบบจะส่งแจ้งเตือนการนัดฉีดวัคซีนให้คุณทาง LINE Bot\nคุณสามารถปิดหน้านี้ได้`,
               true
             );
           }, 2000);
