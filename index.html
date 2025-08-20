@@ -393,10 +393,8 @@
           confirmFriendBtn.disabled = true;
           confirmFriendBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>กำลังยืนยัน...';
           
-          // Send confirmation message via backend
-          await sendFriendConfirmationMessage(cid, userId, userName);
-          
-          // Update status to success
+          // Skip confirmation message since backend doesn't support this action
+          // Just update status to success
           updateCardStatus('friendCard', 'success', 'ยืนยันการเป็นเพื่อนแล้ว');
           
           // Hide add friend section
@@ -603,12 +601,16 @@
         lineUserId: userId
       });
 
+      debugLog('Request URL', GAS_WEBAPP_URL + '?' + params.toString());
+
       try {
         const response = await fetch(GAS_WEBAPP_URL + '?' + params.toString(), {
           method: 'GET'
         });
         const data = await response.json();
         debugLog('Backend response', data);
+        debugLog('LINE ID being saved', userId);
+        debugLog('CID being used', cid);
 
         if (data.success) {
           updateCardStatus('linkCard', 'success', `ผูกบัญชีสำเร็จ: ${data.personName || 'ไม่ทราบชื่อ'}`);
