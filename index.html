@@ -159,26 +159,64 @@
         </div>
       </div>
 
+      <!-- Add Friend Timeline Section -->
+      <div id="addFriendSection" class="hidden mb-6">
+        <!-- Timeline Steps -->
+        <div class="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-xl p-5 mb-4">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4 text-center">
+            <i class="fas fa-user-plus text-blue-500 mr-2"></i>
+            ขั้นตอนเพิ่มเพื่อน LINE Bot
+          </h3>
+          
+          <!-- Timeline -->
+          <div class="relative">
+            <!-- Timeline Line -->
+            <div class="absolute left-6 top-8 bottom-8 w-0.5 bg-gray-300"></div>
+            
+            <!-- Step 1 -->
+            <div class="relative flex items-start mb-6">
+              <div id="timelineStep1" class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-500 text-white font-bold text-lg shadow-lg z-10">
+                1
+              </div>
+              <div class="ml-4 flex-1">
+                <h4 class="font-semibold text-gray-800">เพิ่ม Bot เป็นเพื่อน</h4>
+                <p class="text-sm text-gray-600 mb-2">กดปุ่มด้านล่างเพื่อเปิด LINE และเพิ่ม Bot เป็นเพื่อน</p>
+                <button id="addFriendBtn" class="line-gradient hover:opacity-90 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300 transform hover:scale-105">
+                  <i class="fab fa-line mr-2"></i>เพิ่มเพื่อน @บ้านหาร
+                </button>
+              </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="relative flex items-start">
+              <div id="timelineStep2" class="flex items-center justify-center w-12 h-12 rounded-full bg-gray-300 text-gray-500 font-bold text-lg shadow-lg z-10">
+                2
+              </div>
+              <div class="ml-4 flex-1">
+                <h4 class="font-semibold text-gray-800">ยืนยันการเป็นเพื่อน</h4>
+                <p class="text-sm text-gray-600 mb-2">หลังจากเพิ่มเพื่อนแล้ว กดปุ่มด้านล่างเพื่อดำเนินการต่อ</p>
+                <button id="confirmFriendBtn" class="bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors cursor-not-allowed" disabled>
+                  <i class="fas fa-check mr-2"></i>เพิ่มเพื่อนแล้ว ดำเนินการต่อ
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Help Text -->
+          <div class="mt-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="flex items-start">
+              <i class="fas fa-info-circle text-blue-500 mr-2 mt-0.5"></i>
+              <div class="text-sm text-blue-700">
+                <p class="font-medium mb-1">ทำไมต้องเพิ่มเพื่อน?</p>
+                <p>เพื่อให้ระบบสามารถส่งการแจ้งเตือนการนัดฉีดวัคซีนให้คุณได้ผ่าน LINE Bot</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Action Buttons -->
       <div id="actionButtons" class="space-y-3 hidden">
-        <div id="addFriendSection" class="hidden">
-          <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-            <div class="flex items-center text-yellow-800 mb-2">
-              <i class="fas fa-exclamation-triangle mr-2"></i>
-              <span class="font-medium">จำเป็นต้องเพิ่ม Bot เป็นเพื่อนก่อน</span>
-            </div>
-            <p class="text-sm text-yellow-700">
-              เพื่อให้ระบบสามารถส่งการแจ้งเตือนให้คุณได้ กรุณาเพิ่ม LINE Bot เป็นเพื่อนก่อน
-            </p>
-          </div>
-          <button id="addFriendBtn" class="w-full line-gradient hover:opacity-90 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 bounce">
-            <i class="fab fa-line mr-2"></i>เพิ่มเพื่อนกับ LINE Bot
-          </button>
-          <button id="confirmFriendBtn" class="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-xl transition-colors mt-2">
-            <i class="fas fa-check mr-2"></i>เพิ่มเพื่อนแล้ว ดำเนินการต่อ
-          </button>
-        </div>
-        
         <button onclick="window.close()" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-xl transition-colors">
           <i class="fas fa-times mr-2"></i>ปิดหน้าต่างนี้
         </button>
@@ -197,8 +235,8 @@
     </div>
   </div>
   
-  <!-- Debug Information -->
-  <div id="debug-info" class="fixed bottom-0 left-0 right-0 bg-black bg-opacity-80 text-white text-xs p-2 max-h-40 overflow-y-auto"></div>
+  <!-- Debug Information (Hidden for better UX) -->
+  <div id="debug-info" class="hidden fixed bottom-0 left-0 right-0 bg-black bg-opacity-80 text-white text-xs p-2 max-h-40 overflow-y-auto"></div>
 
   <script>
     // Configuration
@@ -367,39 +405,86 @@
       }
     }
 
-    // Handle add friend process
+    // Update timeline step visual state
+    function updateTimelineStep(stepNumber, state) {
+      const step = document.getElementById(`timelineStep${stepNumber}`);
+      if (!step) return;
+      
+      // Reset classes
+      step.className = 'flex items-center justify-center w-12 h-12 rounded-full font-bold text-lg shadow-lg z-10';
+      
+      switch (state) {
+        case 'active':
+          step.className += ' bg-blue-500 text-white pulse';
+          break;
+        case 'completed':
+          step.className += ' bg-green-500 text-white';
+          step.innerHTML = '<i class="fas fa-check"></i>';
+          break;
+        case 'pending':
+        default:
+          step.className += ' bg-gray-300 text-gray-500';
+          step.textContent = stepNumber;
+          break;
+      }
+    }
+
+    // Handle add friend process with timeline
     async function handleAddFriendProcess(cid, userId, userName) {
       // Show add friend section
       if (addFriendSection) {
         addFriendSection.classList.remove('hidden');
       }
-      showActionButtons();
+
+      // Initialize timeline - Step 1 active
+      updateTimelineStep(1, 'active');
+      updateTimelineStep(2, 'pending');
 
       // Setup add friend button
       if (addFriendBtn) {
         addFriendBtn.onclick = function() {
           debugLog('Opening LINE Bot friend page');
           window.open('https://line.me/R/ti/p/~' + BOT_BASIC_ID, '_blank');
+          
+          // Update timeline - Step 1 completed, Step 2 active
+          updateTimelineStep(1, 'completed');
+          updateTimelineStep(2, 'active');
+          
+          // Enable confirm button
+          if (confirmFriendBtn) {
+            confirmFriendBtn.disabled = false;
+            confirmFriendBtn.className = 'bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg transition-colors';
+          }
         };
       }
 
-      // Setup confirm friend button (เพิ่มเพื่อนแล้ว ดำเนินการต่อ)
+      // Setup confirm friend button
       if (confirmFriendBtn) {
         confirmFriendBtn.onclick = async function() {
           debugLog('User confirmed they added the bot as friend');
+          
+          // Update timeline step 2 to completed
+          updateTimelineStep(2, 'completed');
           
           // Update UI to show confirmation in progress
           updateCardStatus('friendCard', 'loading', 'กำลังยืนยันสถานะ...', 'fa-spinner fa-spin');
           confirmFriendBtn.disabled = true;
           confirmFriendBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>กำลังยืนยัน...';
           
-          // Skip confirmation message since backend doesn't support this action
-          // Just update status to success
+          // Wait a bit for better UX
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Update status to success
           updateCardStatus('friendCard', 'success', 'ยืนยันการเป็นเพื่อนแล้ว');
           
-          // Hide add friend section
+          // Hide add friend section with fade effect
           if (addFriendSection) {
-            addFriendSection.classList.add('hidden');
+            addFriendSection.style.transition = 'opacity 0.5s ease-out';
+            addFriendSection.style.opacity = '0';
+            setTimeout(() => {
+              addFriendSection.classList.add('hidden');
+              addFriendSection.style.opacity = '1';
+            }, 500);
           }
           
           // Continue with account linking
